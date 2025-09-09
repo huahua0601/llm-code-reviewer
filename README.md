@@ -53,14 +53,17 @@
 
 ### 环境要求
 
-- Python 3.8+
+- Python 3.12+
 - [Ollama](https://ollama.ai/) 已安装并运行
 - 足够的磁盘空间用于向量数据库
 
 ### 安装依赖
-
+ 
 ```bash
-pip install -r requirements.txt
+python3 -m venv .venv
+pip install uv
+uv venv --python 3.12
+uv pip install -r requirements.txt
 ```
 
 ### 必需的Ollama模型
@@ -69,10 +72,10 @@ pip install -r requirements.txt
 
 ```bash
 # 规划和摘要模型
-ollama pull llama3.1:latest
+ollama pull gpt-oss:20b
 
 # 代码审查工作模型  
-ollama pull qwen2.5-coder:7b-instruct-q8_0
+ollama pull qwen2.5-coder:7b
 
 # 嵌入模型
 ollama pull nomic-embed-text:latest
