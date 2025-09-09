@@ -15,6 +15,9 @@ from rich.console import Console
 
 from .models import CodeChunk
 
+# 禁用ChromaDB遥测功能以避免兼容性问题
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+
 MAX_FILES_INDEXED = 100
 IGNORE_EXTENSIONS = {
     '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.ico',

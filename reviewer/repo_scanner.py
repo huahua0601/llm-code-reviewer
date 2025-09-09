@@ -12,6 +12,9 @@ from rich.panel import Panel
 from rich.progress import Progress, TaskID
 from rich.logging import RichHandler
 
+# 禁用ChromaDB遥测功能以避免兼容性问题
+os.environ["ANONYMIZED_TELEMETRY"] = "False"
+
 from .formatter import format_review
 from .indexer import CodeIndexer
 from .models import CodeReviewRequest, CodeReviewCategory
@@ -19,8 +22,8 @@ from .ollama_client import OllamaClient
 from .planner import CodeReviewer
 from .worker import CodeReviewWorker
 
-DEFAULT_PLANNER_MODEL = "llama3.1:latest"
-DEFAULT_WORKER_MODEL = "qwen2.5-coder:7b-instruct-q8_0"
+DEFAULT_PLANNER_MODEL = "gpt-oss:20b"
+DEFAULT_WORKER_MODEL = "qwen2.5-coder:7b"
 DEFAULT_EMBEDDING_MODEL = "nomic-embed-text:latest"
 DEFAULT_OLLAMA_HOST = "http://localhost:11434"
 DEFAULT_REPO_PATH = "./"
