@@ -4,10 +4,10 @@ import click
 from rich.console import Console
 from rich.panel import Panel
 
-# 必须在导入任何chromadb相关模块之前禁用遥测
+# 必须在导入任何chromadb相关模块之前应用终极修复
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from disable_telemetry import disable_chromadb_telemetry
-disable_chromadb_telemetry()
+from chromadb_telemetry_fix import apply_ultimate_fix
+apply_ultimate_fix()
 
 from .formatter import format_review
 from .indexer import CodeIndexer

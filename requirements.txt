@@ -1,4 +1,4 @@
-ollama==0.5.3
+ollama==0.4.7
 pydantic==2.11.2
 chromadb==0.6.3
 pygments==2.19.1

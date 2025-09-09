@@ -4,11 +4,11 @@ import json
 import hashlib
 from typing import List, Dict, Any
 
-# 必须在导入chromadb之前禁用遥测
+# 必须在导入chromadb之前应用终极修复
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from disable_telemetry import disable_chromadb_telemetry
-disable_chromadb_telemetry()
+from chromadb_telemetry_fix import apply_ultimate_fix
+apply_ultimate_fix()
 
 import ollama
 import chromadb
