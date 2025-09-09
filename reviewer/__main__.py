@@ -1,10 +1,13 @@
 import os
+import sys
 import click
 from rich.console import Console
 from rich.panel import Panel
 
-# 禁用ChromaDB遥测功能以避免兼容性问题
-os.environ["ANONYMIZED_TELEMETRY"] = "False"
+# 必须在导入任何chromadb相关模块之前禁用遥测
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from disable_telemetry import disable_chromadb_telemetry
+disable_chromadb_telemetry()
 
 from .formatter import format_review
 from .indexer import CodeIndexer

@@ -4,6 +4,12 @@ import json
 import hashlib
 from typing import List, Dict, Any
 
+# 必须在导入chromadb之前禁用遥测
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from disable_telemetry import disable_chromadb_telemetry
+disable_chromadb_telemetry()
+
 import ollama
 import chromadb
 from chromadb.utils import embedding_functions
@@ -14,9 +20,6 @@ from pygments.token import Token
 from rich.console import Console
 
 from .models import CodeChunk
-
-# 禁用ChromaDB遥测功能以避免兼容性问题
-os.environ["ANONYMIZED_TELEMETRY"] = "False"
 
 MAX_FILES_INDEXED = 100
 IGNORE_EXTENSIONS = {

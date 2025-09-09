@@ -3,6 +3,7 @@
 扫描整个代码仓库而不是仅基于git diff文件
 """
 import os
+import sys
 import click
 import logging
 from datetime import datetime
@@ -12,8 +13,10 @@ from rich.panel import Panel
 from rich.progress import Progress, TaskID
 from rich.logging import RichHandler
 
-# 禁用ChromaDB遥测功能以避免兼容性问题
-os.environ["ANONYMIZED_TELEMETRY"] = "False"
+# 必须在导入任何chromadb相关模块之前禁用遥测
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from disable_telemetry import disable_chromadb_telemetry
+disable_chromadb_telemetry()
 
 from .formatter import format_review
 from .indexer import CodeIndexer
