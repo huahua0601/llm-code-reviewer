@@ -8,7 +8,7 @@
 - 🔍 **RAG增强**: 基于ChromaDB的向量数据库进行代码上下文检索，提供更准确的审查建议
 - 📊 **多维度分析**: 涵盖设计、功能性、命名、一致性、代码风格、测试、健壮性、可读性、抽象化等9个维度
 - 🎯 **严重程度分级**: 自动评估问题严重程度（Critical/High/Medium/Low）
-- 📄 **多种输出格式**: 支持Markdown、HTML、综合HTML等多种格式输出
+- 📄 **Markdown输出**: 支持清晰易读的Markdown格式输出
 - 🔄 **双模式扫描**: 支持Git Diff模式和全仓库扫描模式
 - 🚀 **本地化部署**: 基于Ollama，保证代码隐私和安全
 
@@ -23,7 +23,7 @@
                                                        │
 ┌─────────────────┐    ┌──────────────────┐           │
 │   Formatter     │◀───│   Code Reviewer  │◀──────────┘
-│  (MD/HTML)      │    │   (Planner)      │
+│  (Markdown)     │    │   (Planner)      │
 └─────────────────┘    └──────────────────┘
 ```
 
@@ -86,8 +86,8 @@ ollama pull nomic-embed-text:latest
 # 基本用法
 python -m reviewer --diff path/to/your.diff --repo /path/to/repo
 
-# 指定输出格式
-python -m reviewer --diff changes.diff --repo ./my-project --format html
+# 基本审查
+python -m reviewer --diff changes.diff --repo ./my-project
 
 # 自定义模型和提示词
 python -m reviewer \
@@ -107,11 +107,10 @@ python -m reviewer --scan-repo --repo /path/to/repo
 # 扫描指定文件
 python -m reviewer --scan-repo --repo ./my-project --files "src/main.py,src/utils.py"
 
-# 生成详细的HTML报告
+# 生成详细的报告
 python -m reviewer \
     --scan-repo \
     --repo ./my-project \
-    --format comprehensive_html \
     --output-dir ./reports
 ```
 
@@ -121,7 +120,6 @@ python -m reviewer \
 # 直接使用仓库扫描器
 python -m reviewer.repo_scanner \
     --repo ./my-project \
-    --format comprehensive_html \
     --log-file ./scan.log \
     --log-level INFO
 ```
@@ -141,14 +139,12 @@ python -m reviewer.repo_scanner \
 | `--planner-model` | 规划模型 | `llama3.1:latest` |
 | `--worker-model` | 工作器模型 | `qwen2.5-coder:7b-instruct-q8_0` |
 | `--embedding-model` | 嵌入模型 | `nomic-embed-text:latest` |
-| `--format` | 输出格式 | `markdown` |
+| `--format` | 输出格式 | `markdown` (仅支持) |
 | `--reindex` | 强制重新索引 | False |
 
 ### 输出格式
 
-- **markdown**: 简洁的Markdown表格格式
-- **html**: 带有内联注释的HTML格式  
-- **comprehensive_html**: 显示完整文件内容的详细HTML报告
+- **markdown**: 清晰易读的Markdown表格格式，包含审查建议和严重程度分级
 
 ## 📊 输出示例
 
@@ -169,14 +165,11 @@ python -m reviewer.repo_scanner \
 | utils.py | 15 | Naming | 🟢 Low | Consider renaming 'x' to 'userId' |
 ```
 
-### HTML格式
-
-生成交互式HTML报告，包含：
-- 语法高亮的代码显示
-- 行内评论和建议
-- 严重程度颜色编码
-- 可折叠的文件区域
-- 响应式设计
+输出包含详细的审查信息：
+- 按严重程度排序的问题列表
+- 每个文件的详细审查建议
+- 清晰的问题分类和描述
+- 便于阅读的表格格式
 
 ## 🔧 高级配置
 
@@ -241,12 +234,12 @@ reviewer/
 
 ### 自定义格式化器
 
-继承 `CodeReviewFormatter` 基类：
+继承 `MarkdownFormatter` 基类：
 
 ```python
-class CustomFormatter(CodeReviewFormatter):
+class CustomFormatter(MarkdownFormatter):
     def format(self) -> str:
-        # 实现自定义格式化逻辑
+        # 实现自定义Markdown格式化逻辑
         return formatted_output
 ```
 

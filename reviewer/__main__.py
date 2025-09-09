@@ -14,7 +14,7 @@ DEFAULT_EMBEDDING_MODEL = "nomic-embed-text:latest"
 DEFAULT_OLLAMA_HOST     = "http://localhost:11434"
 DEFAULT_REPO_PATH       = "./"
 OUTPUT_PATH = "./out"
-OUTPUT_FILE = f"{OUTPUT_PATH}/test_results.html"
+OUTPUT_FILE = f"{OUTPUT_PATH}/test_results.md"
 
 console = Console()
 
@@ -96,8 +96,8 @@ def review_code_with_rag(
 @click.option("--worker-model", default=DEFAULT_WORKER_MODEL, help="Model to use for worker agents")
 @click.option("--embedding-model", default=DEFAULT_EMBEDDING_MODEL, help="Model to use for embeddings")
 @click.option("--reindex", is_flag=True, help="Force reindexing of the codebase")
-@click.option("--format", "format_type", type=click.Choice(["markdown", "html", "comprehensive_html"]), default="markdown",
-              help="Output format (markdown or html)")
+@click.option("--format", "format_type", type=click.Choice(["markdown"]), default="markdown",
+              help="Output format (only markdown is supported)")
 def main(diff, repo, scan_repo, files, prompt, ollama_host, planner_model, worker_model, embedding_model, reindex, format_type):
     if not diff and not scan_repo:
         console.print("[red]错误: 必须指定 --diff 或 --scan-repo 选项之一[/red]")
@@ -169,19 +169,9 @@ def main(diff, repo, scan_repo, files, prompt, ollama_host, planner_model, worke
         
         formatted_result = format_review(git_diff, result, format_type, repo)
 
-    # 保存或显示结果
-    if format_type != "markdown":
-        import os
-        os.makedirs(OUTPUT_PATH, exist_ok=True)
-        output_filename = "repo_scan_results.html" if scan_repo else "test_results.html"
-        output_file = f"{OUTPUT_PATH}/{output_filename}"
-        
-        with open(output_file, 'w', encoding='utf-8') as f:
-            f.write(formatted_result)
-        console.print(f"[green]:white_check_mark: 审查结果已保存到 [bold]{output_file}[/bold]")
-    else:
-        console.print("代码审查结果", style="bold blue underline")
-        console.print(formatted_result)
+    # 显示结果
+    console.print("代码审查结果", style="bold blue underline")
+    console.print(formatted_result)
 
 
 if __name__ == "__main__":

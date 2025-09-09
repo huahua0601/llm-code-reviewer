@@ -357,8 +357,8 @@ class RepoScanner:
 @click.option("--worker-model", default=DEFAULT_WORKER_MODEL, help="工作器模型")
 @click.option("--embedding-model", default=DEFAULT_EMBEDDING_MODEL, help="嵌入模型")
 @click.option("--reindex", is_flag=True, help="强制重新索引代码库")
-@click.option("--format", "format_type", type=click.Choice(["markdown", "html", "comprehensive_html"]), 
-              default="markdown", help="输出格式")
+@click.option("--format", "format_type", type=click.Choice(["markdown"]), 
+              default="markdown", help="输出格式 (仅支持markdown)")
 @click.option("--log-file", help="日志文件路径（可选，不指定则只输出到控制台）")
 @click.option("--log-level", type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"]), 
               default="INFO", help="日志级别")
@@ -430,14 +430,7 @@ def main(repo, files, categories, prompt, ollama_host, planner_model, worker_mod
         
         # 确定输出文件路径和扩展名
         os.makedirs(output_dir, exist_ok=True)
-        
-        # 根据格式确定文件扩展名
-        if format_type == "markdown":
-            output_file = os.path.join(output_dir, "repo_scan_results.md")
-        elif format_type == "html":
-            output_file = os.path.join(output_dir, "repo_scan_results.html")
-        else:  # comprehensive_html
-            output_file = os.path.join(output_dir, "repo_scan_results.html")
+        output_file = os.path.join(output_dir, "repo_scan_results.md")
         
         # 保存结果到文件
         with open(output_file, 'w', encoding='utf-8') as f:
@@ -445,15 +438,14 @@ def main(repo, files, categories, prompt, ollama_host, planner_model, worker_mod
         
         console.print(f"[green]:white_check_mark: 扫描结果已保存到 [bold]{output_file}[/bold]")
         
-        # 如果是markdown格式，同时在控制台显示（可选）
-        if format_type == "markdown":
-            console.print("\n" + "="*50)
-            console.print("仓库扫描结果预览", style="bold blue underline")
-            console.print("="*50)
-            # 只显示前1000个字符作为预览
-            preview = formatted_result[:1000] + "..." if len(formatted_result) > 1000 else formatted_result
-            console.print(preview)
-            console.print(f"\n[dim]完整结果请查看文件: {output_file}[/dim]")
+        # 在控制台显示预览
+        console.print("\n" + "="*50)
+        console.print("仓库扫描结果预览", style="bold blue underline")
+        console.print("="*50)
+        # 只显示前1000个字符作为预览
+        preview = formatted_result[:1000] + "..." if len(formatted_result) > 1000 else formatted_result
+        console.print(preview)
+        console.print(f"\n[dim]完整结果请查看文件: {output_file}[/dim]")
             
     except Exception as e:
         console.print(f"[red]扫描过程中出错: {str(e)}")
