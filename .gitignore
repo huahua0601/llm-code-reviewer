@@ -1,0 +1,15 @@
+.flashrank_cache
+.venv
+.DS_Store
+__pycache__
+.pytest_cache
+.ruff_cache
+.mypy_cache
+.vscode
+.idea
+.env
+.env.local
+.env.development.local
+out/
+venv/
+__pycache__

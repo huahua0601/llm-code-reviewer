@@ -13,10 +13,18 @@ from rich.panel import Panel
 from rich.progress import Progress, TaskID
 from rich.logging import RichHandler
 
-# 必须在导入任何chromadb相关模块之前应用终极修复
+# 禁用ChromaDB遥测
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from chromadb_telemetry_fix import apply_ultimate_fix
-apply_ultimate_fix()
+try:
+    from disable_chromadb_telemetry import disable_chromadb_telemetry
+    disable_chromadb_telemetry()
+except ImportError:
+    # 备用方案：直接设置环境变量
+    os.environ["ANONYMIZED_TELEMETRY"] = "False"
+    os.environ["CHROMA_TELEMETRY"] = "False"
+    os.environ["CHROMA_TELEMETRY_IMPL"] = "none"
+    os.environ["CHROMA_DISABLE_TELEMETRY"] = "1"
+    os.environ["POSTHOG_DISABLED"] = "1"
 
 from .formatter import format_review
 from .indexer import CodeIndexer
