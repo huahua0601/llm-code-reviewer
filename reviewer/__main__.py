@@ -1,6 +1,7 @@
 import os
 import sys
 import click
+from datetime import datetime
 from rich.console import Console
 from rich.panel import Panel
 
@@ -24,7 +25,7 @@ from .ollama_client import OllamaClient
 from .planner import CodeReviewer
 
 DEFAULT_PLANNER_MODEL   = "gpt-oss:20b"
-DEFAULT_WORKER_MODEL    = "qwen2.5-coder:7b"
+DEFAULT_WORKER_MODEL    = "qwen-coder:30b"
 DEFAULT_EMBEDDING_MODEL = "nomic-embed-text:latest"
 DEFAULT_OLLAMA_HOST     = "http://localhost:11434"
 DEFAULT_REPO_PATH       = "./"
@@ -113,7 +114,8 @@ def review_code_with_rag(
 @click.option("--reindex", is_flag=True, help="Force reindexing of the codebase")
 @click.option("--format", "format_type", type=click.Choice(["markdown"]), default="markdown",
               help="Output format (only markdown is supported)")
-def main(diff, repo, scan_repo, files, prompt, ollama_host, planner_model, worker_model, embedding_model, reindex, format_type):
+@click.option("--output-dir", default=OUTPUT_PATH, help="Output directory for results")
+def main(diff, repo, scan_repo, files, prompt, ollama_host, planner_model, worker_model, embedding_model, reindex, format_type, output_dir):
     if not diff and not scan_repo:
         console.print("[red]错误: 必须指定 --diff 或 --scan-repo 选项之一[/red]")
         return
@@ -184,9 +186,27 @@ def main(diff, repo, scan_repo, files, prompt, ollama_host, planner_model, worke
         
         formatted_result = format_review(git_diff, result, format_type, repo)
 
-    # 显示结果
-    console.print("代码审查结果", style="bold blue underline")
-    console.print(formatted_result)
+    # 保存结果到文件
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # 获取当前时间戳 MM-DD-HH-mm 格式
+    timestamp = datetime.now().strftime("%m-%d-%H-%M")
+    
+    # 生成输出文件名
+    if diff:
+        # 基于diff文件名生成输出文件名
+        diff_basename = os.path.splitext(os.path.basename(diff))[0]
+        output_file = os.path.join(output_dir, f"code_review_{diff_basename}_{timestamp}.md")
+    else:
+        # 仓库扫描模式
+        repo_name = os.path.basename(os.path.abspath(repo))
+        output_file = os.path.join(output_dir, f"repo_scan_{repo_name}_{timestamp}.md")
+    
+    # 写入文件
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(formatted_result)
+    
+    console.print(f"[green]:white_check_mark: 代码审查结果已保存到 [bold]{output_file}[/bold]")
 
 
 if __name__ == "__main__":

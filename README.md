@@ -100,6 +100,11 @@ python -m reviewer \
     --planner-model llama3.1:latest \
     --worker-model qwen2.5-coder:7b-instruct-q8_0
 ```
+示例命令
+```
+
+```
+
 
 ### 2. 全仓库扫描模式（适用于全面审查）
 
@@ -115,6 +120,11 @@ python -m reviewer \
     --scan-repo \
     --repo ./my-project \
     --output-dir ./reports
+```
+
+示例命令
+```bash
+python -m reviewer.repo_scanner --repo /home/ubuntu/auto_tag_resource --planner-model gpt-oss:20b --worker-model qwen2.5-coder:7b --embedding-model nomic-embed-text:latest
 ```
 
 ### 3. 使用仓库扫描器（独立工具）
