@@ -75,7 +75,7 @@ uv pip install -r requirements.txt
 ollama pull gpt-oss:20b
 
 # 代码审查工作模型  
-ollama pull qwen3-coder:7b
+ollama pull qwen3-coder:30b
 
 # 嵌入模型
 ollama pull nomic-embed-text:latest
@@ -124,7 +124,7 @@ python -m reviewer \
 
 示例命令
 ```bash
-python -m reviewer.repo_scanner --repo /home/ubuntu/auto_tag_resource --planner-model gpt-oss:20b --worker-model qwen3-coder:7b --embedding-model nomic-embed-text:latest
+python -m reviewer.repo_scanner --repo /home/ubuntu/auto_tag_resource --planner-model gpt-oss:20b --worker-model qwen3-coder:30b --embedding-model nomic-embed-text:latest
 ```
 
 ### 3. 使用仓库扫描器（独立工具）
@@ -149,8 +149,8 @@ python -m reviewer.repo_scanner \
 | `--files` | 指定扫描的文件列表（逗号分隔） | 所有文件 |
 | `--prompt` | 自定义系统提示词 | 默认审查提示 |
 | `--ollama-host` | Ollama服务地址 | `http://localhost:11434` |
-| `--planner-model` | 规划模型 | `llama3.1:latest` |
-| `--worker-model` | 工作器模型 | `qwen2.5-coder:7b-instruct-q8_0` |
+| `--planner-model` | 规划模型 | `gpt-oss:20b` |
+| `--worker-model` | 工作器模型 | `qwen3-coder:30b` |
 | `--embedding-model` | 嵌入模型 | `nomic-embed-text:latest` |
 | `--format` | 输出格式 | `markdown` (仅支持) |
 | `--reindex` | 强制重新索引 | False |
