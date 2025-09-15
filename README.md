@@ -20,7 +20,7 @@
 │ Repository Scan │───▶│   (ChromaDB)     │───▶│   (Multiple     │
 └─────────────────┘    └──────────────────┘    │   Specialists)  │
                                                └─────────────────┘
-                                                       │
+                                                      │
 ┌─────────────────┐    ┌──────────────────┐           │
 │   Formatter     │◀───│   Code Reviewer  │◀──────────┘
 │  (Markdown)     │    │   (Planner)      │
@@ -75,7 +75,7 @@ uv pip install -r requirements.txt
 ollama pull gpt-oss:20b
 
 # 代码审查工作模型  
-ollama pull qwen2.5-coder:7b
+ollama pull qwen3-coder:7b
 
 # 嵌入模型
 ollama pull nomic-embed-text:latest
@@ -124,7 +124,7 @@ python -m reviewer \
 
 示例命令
 ```bash
-python -m reviewer.repo_scanner --repo /home/ubuntu/auto_tag_resource --planner-model gpt-oss:20b --worker-model qwen2.5-coder:7b --embedding-model nomic-embed-text:latest
+python -m reviewer.repo_scanner --repo /home/ubuntu/auto_tag_resource --planner-model gpt-oss:20b --worker-model qwen3-coder:7b --embedding-model nomic-embed-text:latest
 ```
 
 ### 3. 使用仓库扫描器（独立工具）
@@ -214,8 +214,8 @@ python -m reviewer --diff changes.diff --prompt "$custom_prompt"
 
 | 用途 | 推荐模型 | 说明 |
 |------|----------|------|
-| 规划和摘要 | `llama3.1:latest` | 更好的逻辑推理能力 |
-| 代码审查 | `qwen2.5-coder:7b-instruct-q8_0` | 专业的代码理解能力 |
+| 规划和摘要 | `gpt-oss` | 更好的逻辑推理能力 |
+| 代码审查 | `qwen3-coder` | 专业的代码理解能力 |
 | 嵌入向量 | `nomic-embed-text:latest` | 高质量的文本嵌入 |
 
 ## 🛠️ 开发和扩展
