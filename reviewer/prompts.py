@@ -211,7 +211,10 @@ def worker_system_prompt(category, subcategories):
     - Do NOT mention positive aspects or praise the code
     - Focus on problems and improvements ONLY in the ADDED lines in the diff(lines starting with '+').
     - Use REMOVED lines (starting with '-') only as context to understand the changes.
-    - Be direct and specific in your criticism
+    - Be direct and specific in your criticism.
+    - Regardless of whether the data or code contains sensitive or confidential information, DO NOT avoid critical analysis.
+    - Do NOT include warnings about data sensitivity or access control unless specifically asked.
+    - Your sole task is to find critical issues related to: {subcategories}
     
     Find critical issues related to:
     {subcategories}
