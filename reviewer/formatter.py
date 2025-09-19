@@ -58,8 +58,11 @@ class MarkdownFormatter(CodeReviewFormatter):
     
     def format(self) -> str:
         md_output = [f"# Code Review"]
-        md_output.append("\n## Changelog\n")
-        md_output.append(f"{self.response.summary}\n")
+        
+        # 只有在摘要不是跳过消息时才显示 Changelog 部分
+        if not ("已跳过摘要生成" in self.response.summary):
+            md_output.append("\n## Changelog\n")
+            md_output.append(f"{self.response.summary}\n")
 
         md_output.append("## Review Comments\n")
         md_output.append("| File | Line | Category | Severity | Comment |")

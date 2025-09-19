@@ -29,11 +29,14 @@ class OllamaClient:
                     
     
     def chat(self, model: str, messages: List[Dict[str, str]], 
-            temperature: float = 0.7, max_tokens: int = 2048) -> str:
+            temperature: float = 0.7, max_tokens: int = 2048, stream: bool = False) -> str:
         try:
             # TODO: Add temperature
-            response = self.client.chat(model=model, messages=messages)
-            return response["message"]["content"]
+            response = self.client.chat(model=model, messages=messages, stream=stream)
+            if stream:
+                return response
+            else:
+                return response["message"]["content"]
         except Exception as e:
             raise
         

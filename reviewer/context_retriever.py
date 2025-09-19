@@ -1,13 +1,15 @@
 from .diff_parser import extract_modified_symbols, extract_modified_files
 from .indexer import CodeIndexer
+from rich.console import Console
 
 MAX_CONTEXT_DOCS = 3
-MAX_CONTEXT_LINES = 20
+MAX_CONTEXT_LINES = 200
 
 class ContextRetriever:
     def __init__(self, code_indexer: CodeIndexer, max_context_docs: int = MAX_CONTEXT_DOCS):
         self.code_indexer = code_indexer
         self.max_context_docs = max_context_docs
+        self.console = Console()
 
     def get_symbol_context(self, git_diff):
         modified_symbols = extract_modified_symbols(git_diff)
@@ -30,19 +32,23 @@ class ContextRetriever:
                 break
         return context
     
-    def score_context_relevance(self, context_doc, git_diff):
+    def score_context_relevance(self, context_doc, git_diff, modified_symbols=None, modified_file_paths=None):
         """
         Score the relevance of a context document to the current diff.
         
         Args:
             context_doc: Document containing code context
             git_diff: Git diff string
+            modified_symbols: Pre-extracted modified symbols (optional, for performance)
+            modified_file_paths: Pre-extracted modified file paths (optional, for performance)
             
         Returns:
             float: Relevance score (higher is more relevant)
         """
-        # Extract symbols from diff
-        modified_symbols = extract_modified_symbols(git_diff)
+        # Extract symbols from diff (if not provided)
+        if modified_symbols is None:
+            modified_symbols = extract_modified_symbols(git_diff)
+        
         symbols = set()
         for _, s in modified_symbols.items():
             symbols.update(s)
@@ -61,7 +67,9 @@ class ContextRetriever:
         score += symbol_overlap * 3  # Higher weight for explicit symbol matches
         
         # Add score for file name match
-        modified_file_paths = extract_modified_files(git_diff)
+        if modified_file_paths is None:
+            modified_file_paths = extract_modified_files(git_diff)
+        
         for file_path in modified_file_paths:
             if file_path.lower() in context_doc['file_path'].lower():
                 score += 5
@@ -78,7 +86,7 @@ class ContextRetriever:
         
         return score
 
-    def get_diff_context(self, git_diff):
+    def get_diff_context(self, git_diff, is_repo_scan=None):
         context_docs = []
         try:
             # First, get symbol context
@@ -95,12 +103,33 @@ class ContextRetriever:
             if not deduped:
                 return []
             
-            # Score and sort context by relevance
-            scored_context = [(doc, self.score_context_relevance(doc, git_diff)) for doc in deduped if isinstance(doc, dict)]
-            scored_context.sort(key=lambda x: x[1], reverse=True)  # Sort by score, descending
+            modified_symbols = extract_modified_symbols(git_diff)
+            modified_file_paths = extract_modified_files(git_diff)
+
+            self.console.print(f"Extracted {len(modified_symbols)} modified symbols and {len(modified_file_paths)} modified file paths")
             
-            # Take top N most relevant docs
-            top_context = [doc for doc, _ in scored_context[:self.max_context_docs]]
+            # Auto-detect repo scan mode if not explicitly specified
+            if is_repo_scan is None:
+                # Repo scan mode typically has many files (>10) and uses virtual diff format
+                is_repo_scan = len(modified_file_paths) > 10 or "new file mode 100644" in git_diff
+                
+            if is_repo_scan:
+                # For repo scanning mode, all files are relevant - no need to score and filter
+                self.console.print(f"Repo scan mode: Processing {len(deduped)} context documents (all will be included)")
+                top_context = [doc for doc in deduped if isinstance(doc, dict)]
+            else:
+                # For regular diff mode, score and filter by relevance
+                self.console.print(f"Diff mode: Scoring {len(deduped)} context documents")
+                scored_context = []
+                for doc in deduped:
+                    if isinstance(doc, dict):
+                        score = self.score_context_relevance(doc, git_diff, modified_symbols, modified_file_paths)
+                        scored_context.append((doc, score))
+                
+                scored_context.sort(key=lambda x: x[1], reverse=True)  # Sort by score, descending
+                # Take top N most relevant docs
+                top_context = [doc for doc, _ in scored_context[:self.max_context_docs]]
+                self.console.print(f"Selected top {len(top_context)} most relevant documents")
             
             # Truncate content to avoid overwhelming the LLM
             return [self._truncate_doc_content(doc) for doc in top_context]

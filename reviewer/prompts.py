@@ -255,15 +255,29 @@ def worker_user_prompt(category, code_to_review, context):
     on the specific subcategories mentioned. Use REMOVED lines (starting with '-') as context to understand 
     what changed. Be critical - focus exclusively on issues, not strengths.
     
+    CRITICAL: You MUST reply with ONLY a valid JSON array. No other text, explanations, or code blocks.
+    
     Reply with JSON array of comments with the format:
     [
       {{
-         "file_name": "Example.kt", // optional
-         "line_number": 123, // optional
-         "comment": "Critical feedback with improvement suggestion", // REQUIRED
-         "severity": "High" // REQUIRED: Critical, High, Medium, or Low
+         "file_name": "Example.kt",
+         "line_number": 123,
+         "comment": "Critical feedback with improvement suggestion",
+         "severity": "High"
       }}
     ]
+    
+    EXAMPLE VALID RESPONSE:
+    [
+      {{
+         "file_name": "test.py",
+         "line_number": 45,
+         "comment": "This function lacks error handling for invalid input",
+         "severity": "High"
+      }}
+    ]
+    
+    REMEMBER: Return ONLY valid JSON. No markdown, no code blocks, no explanations.
     
     SEVERITY GUIDELINES (choose the MOST APPROPRIATE level):
     - Critical: Security vulnerabilities, functional bugs, potential crashes, data corruption, memory leaks

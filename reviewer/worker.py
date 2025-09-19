@@ -21,6 +21,7 @@ from .reranker import ContextReranker
 
 MAX_CODE_LINES = 100
 MAX_CONTEXT_DOCS = 3
+MAX_REPO_SCAN_LINES = 1000  # 仓库扫描模式下的最大行数限制
 
 class CodeReviewWorker:
     def __init__(self, 
@@ -38,7 +39,21 @@ class CodeReviewWorker:
         self.logger = logging.getLogger(__name__)
         self.context_retriever = context_retriever or ContextRetriever(code_indexer)
 
-    def get_sampled_code_lines(self, git_diff):
+    def get_sampled_code_lines(self, git_diff, is_repo_scan=None):
+        """
+        Format the files and code lines for the LLM
+        
+        Args:
+            git_diff: Git diff content
+            is_repo_scan: If True, include all code without sampling. If None, auto-detect.
+        """
+        # Auto-detect repo scan mode if not explicitly specified
+        if is_repo_scan is None:
+            # Check for repo scan indicators
+            from .diff_parser import extract_modified_files
+            modified_files = extract_modified_files(git_diff)
+            is_repo_scan = len(modified_files) > 10 or "new file mode 100644" in git_diff
+        
         # Format the files and code lines for the LLM
         formatted_code_lines = []
         for file_name, line_number, code_line in extract_added_lines(git_diff):
@@ -47,29 +62,36 @@ class CodeReviewWorker:
             if line_number is not None and line_number > 0:
                  formatted_code_lines.append(f"{file_name}:{line_number}: {prefix}{code_line.rstrip()}")
 
-        # Limit the amount of code sent to avoid overwhelming the (small) model
-        if len(formatted_code_lines) > MAX_CODE_LINES:
-            # Take a sample of lines around the diff to maintain context
-            beginning = formatted_code_lines[:MAX_CODE_LINES//2]
-            end = formatted_code_lines[-MAX_CODE_LINES//2:]
-            middle_size = MAX_CODE_LINES - len(beginning) - len(end)
+        if is_repo_scan:
+            # For repo scanning, include more code but still have a reasonable limit
+           return formatted_code_lines
+        else:
+            # For regular diff review, apply sampling if needed
+            if len(formatted_code_lines) > MAX_CODE_LINES:
+                # Take a sample of lines around the diff to maintain context
+                beginning = formatted_code_lines[:MAX_CODE_LINES//2]
+                end = formatted_code_lines[-MAX_CODE_LINES//2:]
+                middle_size = MAX_CODE_LINES - len(beginning) - len(end)
 
-            if middle_size > 0 and len(formatted_code_lines) > (len(beginning) + len(end)):
-                middle_start = len(beginning)
-                middle_end = len(formatted_code_lines) - len(end)
-                step = (middle_end - middle_start) / (middle_size + 1)
-                
-                middle = []
-                for i in range(middle_size):
-                    idx = int(middle_start + step * (i + 1))
-                    if idx < middle_end:
-                        middle.append(formatted_code_lines[idx])
-                
-                formatted_code_lines = beginning + middle + end
+                if middle_size > 0 and len(formatted_code_lines) > (len(beginning) + len(end)):
+                    middle_start = len(beginning)
+                    middle_end = len(formatted_code_lines) - len(end)
+                    step = (middle_end - middle_start) / (middle_size + 1)
+                    
+                    middle = []
+                    for i in range(middle_size):
+                        idx = int(middle_start + step * (i + 1))
+                        if idx < middle_end:
+                            middle.append(formatted_code_lines[idx])
+                    
+                    formatted_code_lines = beginning + middle + end
+                else:
+                    formatted_code_lines = beginning + end
+                    
+                formatted_code_lines.insert(len(beginning), f"... (sampled {MAX_CODE_LINES} lines from {len(formatted_code_lines)} total) ...")
+                self.console.print(f"[dim]  ├─ 差异审查模式：采样了 {MAX_CODE_LINES} 行代码")
             else:
-                formatted_code_lines = beginning + end
-                
-            formatted_code_lines.insert(len(beginning), f"... (sampled {MAX_CODE_LINES} lines from {len(formatted_code_lines)} total) ...")
+                self.console.print(f"[dim]  ├─ 差异审查模式：处理全部 {len(formatted_code_lines)} 行代码")
         
         return formatted_code_lines
 
@@ -192,44 +214,190 @@ class CodeReviewWorker:
         )
     
     def parse_llm_response(self, response) -> List[CodeReviewComment]:
-        # Extract JSON from response (in case the LLM includes extra text)
-        json_match = re.search(r'\[\s*{.*}\s*\]', response, re.DOTALL)
-        if json_match:
-            json_str = json_match.group(0)
-        else:
-            json_str = response
-
-        print("Trying to parse LLM response:")
-        self.console.print(json_str)
-        
-        try:
-            comments_data = json.loads(json_str)
-            comments = [self.parse_comment(item) for item in comments_data]
-            comments = [c for c in comments if c is not None]
-
-            if not comments:
-                from .models import SeverityLevel
-                comments.append(
-                    CodeReviewComment(
-                        category=self.category,
-                        comment=f"No {self.category.value.lower()} issues detected.",
-                        severity=SeverityLevel.LOW
-                    )
-                )
-        except json.JSONDecodeError:
-            print("JSON parsing error")
-            import traceback
-            print(traceback.format_exc())
-            # If JSON parsing fails, create a fallback comment
+        """Parse the LLM response to extract code review comments with enhanced error handling."""
+        if not response or not str(response).strip():
+            self.logger.warning("Empty LLM response received")
             from .models import SeverityLevel
-            comments = [
+            return [
                 CodeReviewComment(
                     category=self.category,
-                    comment="Unable to parse LLM response. Please check the model output format.",
+                    comment="LLM returned empty response. Please try again.",
                     severity=SeverityLevel.MEDIUM
                 )
             ]
-        return comments
+        
+        response_str = str(response).strip()
+        self.console.print(f"[dim]  ├─ 解析LLM响应 ({len(response_str)} 字符)")
+        
+        # 尝试多种解析策略
+        comments = []
+
+        # 检查是否为空数组响应
+        if self._is_empty_json_array(response_str):
+            self.console.print(f"[dim]  ├─ 检测到空数组响应，无需解析")
+            return comments
+        
+        # 策略1: 尝试提取JSON并解析
+        try:
+            json_match = re.search(r'\[\s*{.*}\s*\]', response_str, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+                self.console.print(f"[dim]  ├─ 找到JSON格式数据")
+            else:
+                json_str = response_str
+            
+            comments_data = json.loads(json_str)
+            comments = [self.parse_comment(item) for item in comments_data]
+            comments = [c for c in comments if c is not None]
+            
+            if comments:
+                self.console.print(f"[dim]  ├─ JSON解析成功，提取到 {len(comments)} 条建议")
+                return comments
+                
+        except json.JSONDecodeError as e:
+            self.console.print(f"[dim]  ├─ JSON解析失败: {str(e)}")
+            self.console.print(f"[dim]  ├─ 原始响应内容:")
+            # 打印原始内容，限制长度避免过长输出
+            display_content = json_str[:1000] + "..." if len(json_str) > 1000 else json_str
+            self.console.print(f"[yellow]{display_content}[/yellow]")
+            self.logger.debug(f"JSON parsing failed: {str(e)}")
+            self.logger.debug(f"Raw response content: {json_str}")
+        except Exception as e:
+            self.logger.warning(f"Unexpected error during JSON parsing: {str(e)}")
+        
+        # 策略2: 智能文本解析 - 查找结构化内容
+        try:
+            comments = self._parse_text_response(response_str)
+            if comments:
+                self.console.print(f"[dim]  ├─ 文本解析成功，提取到 {len(comments)} 条建议")
+                return comments
+        except Exception as e:
+            self.logger.warning(f"Text parsing failed: {str(e)}")
+        
+        # 策略3: 创建基于整体内容的单个评论
+        try:
+            comment = self._create_summary_comment(response_str)
+            self.console.print(f"[dim]  ├─ 创建摘要评论")
+            return [comment]
+        except Exception as e:
+            self.logger.error(f"Failed to create summary comment: {str(e)}")
+        
+        # 最后的fallback
+        from .models import SeverityLevel
+        return [
+            CodeReviewComment(
+                category=self.category,
+                comment="Unable to parse LLM response. Please check the model output format.",
+                severity=SeverityLevel.MEDIUM
+            )
+        ]
+    
+    def _parse_text_response(self, response_content):
+        """尝试从自然语言响应中提取结构化建议"""
+        comments = []
+        from .models import SeverityLevel
+        
+        # 按段落分割
+        paragraphs = [p.strip() for p in response_content.split('\n\n') if p.strip()]
+        
+        for paragraph in paragraphs:
+            # 查找包含代码审查相关关键词的段落
+            if any(keyword in paragraph.lower() for keyword in [
+                'line', '行', 'file', '文件', 'function', '函数', 
+                'error', '错误', 'issue', '问题', 'warning', '警告',
+                'security', '安全', 'bug', 'performance', '性能'
+            ]):
+                # 提取可能的严重级别
+                severity = SeverityLevel.MEDIUM
+                if any(word in paragraph.lower() for word in ['critical', '严重', 'high', '高', 'security', '安全']):
+                    severity = SeverityLevel.HIGH
+                elif any(word in paragraph.lower() for word in ['low', '低', 'minor', '轻微', 'suggestion', '建议']):
+                    severity = SeverityLevel.LOW
+                
+                # 限制评论长度
+                comment_text = paragraph[:500] + "..." if len(paragraph) > 500 else paragraph
+                
+                comments.append(
+                    CodeReviewComment(
+                        category=self.category,
+                        comment=comment_text,
+                        severity=severity
+                    )
+                )
+        
+        return comments[:5]  # 最多返回5条建议
+    
+    def _create_summary_comment(self, response_content):
+        """基于整体响应内容创建摘要评论"""
+        from .models import SeverityLevel
+        
+        # 截取前1000个字符作为摘要
+        summary = response_content[:1000] + "..." if len(response_content) > 1000 else response_content
+        
+        # 检测严重级别
+        severity = SeverityLevel.LOW
+        if any(word in response_content.lower() for word in [
+            'error', 'critical', 'security', 'vulnerability', 
+            '错误', '严重', '安全', '漏洞'
+        ]):
+            severity = SeverityLevel.HIGH
+        elif any(word in response_content.lower() for word in [
+            'warning', 'issue', 'problem', 'concern',
+            '警告', '问题', '关注'
+        ]):
+            severity = SeverityLevel.MEDIUM
+        
+        return CodeReviewComment(
+            category=self.category,
+            comment=f"{self.category.value} 审查摘要: {summary}",
+            severity=severity
+        )
+    
+    def _is_empty_json_array(self, response_str: str) -> bool:
+        """
+        检查响应是否为空的JSON数组
+        处理各种可能的格式：[], [ ], [\n], 等
+        """
+        if not response_str or not response_str.strip():
+            return True
+            
+        # 移除所有空白字符进行检查
+        cleaned = re.sub(r'\s+', '', response_str.strip())
+        
+        # 检查是否为空数组
+        if cleaned == "[]":
+            return True
+        
+        # 检查是否为包含在代码块中的空数组
+        code_block_patterns = [
+            r'```(?:json)?\s*\[\s*\]\s*```',  # ```json [] ``` 或 ``` [] ```
+            r'`\[\s*\]`',  # `[]`
+        ]
+        
+        for pattern in code_block_patterns:
+            if re.match(pattern, response_str.strip(), re.DOTALL | re.IGNORECASE):
+                return True
+        
+        # 尝试解析为JSON来验证
+        try:
+            import json
+            parsed = json.loads(response_str.strip())
+            return isinstance(parsed, list) and len(parsed) == 0
+        except (json.JSONDecodeError, ValueError):
+            pass
+        
+        # 检查是否只包含空数组和其他非内容文本（如解释性文字）
+        # 提取所有可能的JSON数组
+        json_arrays = re.findall(r'\[.*?\]', response_str, re.DOTALL)
+        if len(json_arrays) == 1:
+            try:
+                import json
+                parsed = json.loads(json_arrays[0])
+                return isinstance(parsed, list) and len(parsed) == 0
+            except (json.JSONDecodeError, ValueError):
+                pass
+        
+        return False
     
     def _get_default_severity_for_category(self):
         """根据审查类别分配默认严重程度级别"""
@@ -298,6 +466,18 @@ class CodeReviewWorker:
         """
         Perform the code review for a specific category using Ollama and RAG context.
         """
+        # 检测是否为仓库扫描模式
+        from .diff_parser import extract_modified_files
+        modified_files = extract_modified_files(git_diff)
+        is_repo_scan = len(modified_files) > 10 or "new file mode 100644" in git_diff
+        
+        if is_repo_scan:
+            return self._review_repo_scan(git_diff, system_prompt)
+        else:
+            return self._review_diff(git_diff, system_prompt)
+    
+    def _review_diff(self, git_diff: str, system_prompt: str) -> WorkerResponse:
+        """普通diff审查模式 - 保持原有逻辑"""
         self.console.print(f"[dim]  ├─ 正在提取代码行...")
         formatted_code_lines = self.get_sampled_code_lines(git_diff)
         code_to_review = "\n".join(formatted_code_lines)
@@ -311,33 +491,114 @@ class CodeReviewWorker:
         context_text = ContextReranker().rank(code_to_review, context_text)
         context_str = self.format_context(context_text)
         
-        self.console.print(f"[dim]  ├─ 正在生成审查提示...")
+        return self._perform_single_review(code_to_review, context_str)
+    
+    def _review_repo_scan(self, git_diff: str, system_prompt: str) -> WorkerResponse:
+        """仓库扫描模式 - 分批处理所有代码，不采样不重排"""
+        self.console.print(f"[dim]  ├─ 仓库扫描模式：正在提取所有代码行...")
+        formatted_code_lines = self.get_sampled_code_lines(git_diff, is_repo_scan=True)
+        self.console.print(f"[dim]  ├─ 已提取 {len(formatted_code_lines)} 行代码")
+        
+        # 仓库扫描模式不需要额外的上下文，因为本身就是所有待审查的文件
+        self.console.print(f"[dim]  ├─ 仓库扫描模式：跳过上下文检索（所有文件已包含）")
+        context_str = ""
+
+        print(context_str)
+        print("=================================================")
+        # 分批处理代码
+        batch_size = 2000  # 每批处理的代码行数
+        all_comments = []
+        
+        if len(formatted_code_lines) <= batch_size:
+            # 小于批次大小，直接处理
+            code_to_review = "\n".join(formatted_code_lines)
+            response = self._perform_single_review(code_to_review, context_str)
+            return response
+        else:
+            # 分批处理
+            total_batches = (len(formatted_code_lines) + batch_size - 1) // batch_size
+            self.console.print(f"[dim]  ├─ 代码量较大，分 {total_batches} 批处理")
+            
+            for i in range(0, len(formatted_code_lines), batch_size):
+                batch_num = (i // batch_size) + 1
+                batch_lines = formatted_code_lines[i:i + batch_size]
+                code_to_review = "\n".join(batch_lines)
+                
+                self.console.print(f"[dim]  ├─ 正在处理第 {batch_num}/{total_batches} 批 ({len(batch_lines)} 行代码)")
+                
+                try:
+                    batch_response = self._perform_single_review(code_to_review, context_str, batch_info=f"批次 {batch_num}/{total_batches}")
+                    all_comments.extend(batch_response.comments)
+                except Exception as e:
+                    self.console.print(f"[yellow]  ├─ 第 {batch_num} 批处理失败: {str(e)}")
+                    self.logger.warning(f"Batch {batch_num} failed: {str(e)}")
+                    continue
+            
+            self.console.print(f"[dim]  ├─ 所有批次处理完成，总计 {len(all_comments)} 条建议")
+            return WorkerResponse(category=self.category, comments=all_comments)
+    
+    def _perform_single_review(self, code_to_review: str, context_str: str, batch_info: str = "") -> WorkerResponse:
+        """执行单次审查"""
+        batch_prefix = f"({batch_info}) " if batch_info else ""
+        
+        self.console.print(f"[dim]  ├─ {batch_prefix}正在生成审查提示...")
         messages = self.get_prompt(code_to_review, context_str)
         comments = []
 
         try:
-            self.console.print(f"[dim]  ├─ 正在调用 {self.model} 模型进行审查...")
+            self.console.print(f"[dim]  ├─ {batch_prefix}正在调用 {self.model} 模型进行审查（流式模式）...")
             import time
             llm_start = time.time()
             
-            response = self.ollama_client.chat(model=self.model, messages=messages, temperature=0.3)
+            # 使用流式模式调用LLM
+            response_content = ""
+            try:
+                response_stream = self.ollama_client.chat(
+                    model=self.model, 
+                    messages=messages, 
+                    temperature=0.3,
+                    stream=True
+                )
+                
+                # 收集流式响应
+                for chunk in response_stream:
+                    if chunk.get("message", {}).get("content"):
+                        response_content += chunk["message"]["content"]
+                
+                llm_end = time.time()
+                self.console.print(f"[dim]  ├─ {batch_prefix}LLM 流式响应完成 (耗时: {llm_end - llm_start:.1f}s)")
+                
+            except Exception as stream_error:
+                self.console.print(f"[yellow]  ├─ {batch_prefix}流式调用失败，尝试非流式模式: {str(stream_error)}")
+                self.logger.warning(f"Stream mode failed, falling back to non-stream: {str(stream_error)}")
+                
+                # 回退到非流式模式
+                response = self.ollama_client.chat(model=self.model, messages=messages, temperature=0.3)
+                response_content = response.get("message", {}).get("content", "")
+                
+                llm_end = time.time()
+                self.console.print(f"[dim]  ├─ {batch_prefix}LLM 非流式响应完成 (耗时: {llm_end - llm_start:.1f}s)")
             
-            llm_end = time.time()
-            self.console.print(f"[dim]  ├─ LLM 响应完成 (耗时: {llm_end - llm_start:.1f}s)")
+            if not response_content.strip():
+                raise ValueError("LLM returned empty response")
             
-            self.console.print(f"[dim]  ├─ 正在解析审查结果...")
-            comments = self.parse_llm_response(response)
-            self.console.print(f"[dim]  └─ 解析完成，生成 {len(comments)} 条建议")
+            self.console.print(f"[dim]  ├─ {batch_prefix}正在解析审查结果...")
+            comments = self.parse_llm_response(response_content)
+            self.console.print(f"[dim]  └─ {batch_prefix}解析完成，生成 {len(comments)} 条建议")
             
         except Exception as e:
-            self.console.print(f"[red]  └─ 审查过程中出错: {e}")
+            self.console.print(f"[red]  └─ {batch_prefix}审查过程中出错: {e}")
+            self.logger.error(f"LLM call failed for category {self.category.value}: {str(e)}")
             import traceback
-            print(traceback.format_exc())
+            self.logger.error(f"Full traceback: {traceback.format_exc()}")
+            
             # Handle any errors during LLM generation
+            from .models import SeverityLevel
             comments = [
                 CodeReviewComment(
                     category=self.category,
-                    comment=f"Error during {self.category.value} review: {str(e)}"
+                    comment=f"Error during {self.category.value} review: {str(e)}",
+                    severity=SeverityLevel.HIGH
                 )
             ]
         

@@ -114,20 +114,30 @@ class RepoScanner:
         
         return code_files
     
-    def create_virtual_diff(self, files_to_scan: List[str] = None) -> str:
+    def create_virtual_diff(self, files_to_scan: List[str] = None) -> tuple[str, dict]:
         """
         创建一个虚拟的diff，包含指定文件的所有内容
         如果files_to_scan为None，则扫描所有文件
+        
+        Returns:
+            tuple: (virtual_diff_content, stats_dict)
         """
         if files_to_scan is None:
             files_to_scan = self.get_all_code_files()
         
         virtual_diff = ""
+        total_lines = 0
+        total_files = 0
+        processed_files = 0
+        skipped_files = 0
+        
+        console.print(f"[blue]开始处理 {len(files_to_scan)} 个文件...")
         
         for file_path in files_to_scan:
             full_path = os.path.join(self.repo_path, file_path)
             
             if not os.path.exists(full_path):
+                skipped_files += 1
                 continue
                 
             try:
@@ -136,11 +146,22 @@ class RepoScanner:
                 
                 # 跳过空文件
                 if not content.strip():
+                    skipped_files += 1
                     continue
                 
                 lines = content.splitlines()
                 if not lines:
+                    skipped_files += 1
                     continue
+                
+                # 统计信息
+                file_line_count = len(lines)
+                total_lines += file_line_count
+                processed_files += 1
+                
+                # 每处理10个文件显示一次进度
+                if processed_files % 10 == 0:
+                    console.print(f"[dim]├─ 已处理 {processed_files} 个文件，累计 {total_lines:,} 行代码")
                 
                 # 创建更标准的git diff格式
                 virtual_diff += f"diff --git a/{file_path} b/{file_path}\n"
@@ -148,7 +169,7 @@ class RepoScanner:
                 virtual_diff += f"index 0000000..{'a' * 7}\n"
                 virtual_diff += f"--- /dev/null\n"
                 virtual_diff += f"+++ b/{file_path}\n"
-                virtual_diff += f"@@ -0,0 +1,{len(lines)} @@\n"
+                virtual_diff += f"@@ -0,0 +1,{file_line_count} @@\n"
                 
                 # 将每一行标记为新增行
                 for line in lines:
@@ -156,23 +177,46 @@ class RepoScanner:
                     
             except Exception as e:
                 console.print(f"[yellow]警告: 无法读取文件 {file_path}: {e}")
+                skipped_files += 1
                 continue
         
-        return virtual_diff
+        # 统计信息
+        stats = {
+            'total_files_found': len(files_to_scan),
+            'processed_files': processed_files,
+            'skipped_files': skipped_files,
+            'total_lines': total_lines
+        }
+        
+        # 输出最终统计
+        console.print(f"[green]✓ 文件处理完成:")
+        console.print(f"[green]  ├─ 发现文件: {len(files_to_scan):,} 个")
+        console.print(f"[green]  ├─ 成功处理: {processed_files:,} 个文件")
+        console.print(f"[green]  ├─ 跳过文件: {skipped_files:,} 个")
+        console.print(f"[green]  └─ 总代码行数: {total_lines:,} 行")
+        
+        return virtual_diff, stats
     
-    def _create_simplified_diff(self, files_to_scan: List[str] = None) -> str:
+    def _create_simplified_diff(self, files_to_scan: List[str] = None) -> tuple[str, dict]:
         """
         创建简化的diff格式，避免unidiff解析问题
+        
+        Returns:
+            tuple: (simplified_diff_content, stats_dict)
         """
         if files_to_scan is None:
             files_to_scan = self.get_all_code_files()
         
         simplified_diff = ""
+        total_lines = 0
+        processed_files = 0
+        skipped_files = 0
         
         for file_path in files_to_scan:
             full_path = os.path.join(self.repo_path, file_path)
             
             if not os.path.exists(full_path):
+                skipped_files += 1
                 continue
                 
             try:
@@ -181,7 +225,13 @@ class RepoScanner:
                 
                 # 跳过空文件
                 if not content.strip():
+                    skipped_files += 1
                     continue
+                
+                # 统计行数
+                file_line_count = len(content.splitlines())
+                total_lines += file_line_count
+                processed_files += 1
                 
                 # 使用简单的文件标记格式
                 simplified_diff += f"\n=== FILE: {file_path} ===\n"
@@ -190,11 +240,19 @@ class RepoScanner:
                     
             except Exception as e:
                 console.print(f"[yellow]警告: 无法读取文件 {file_path}: {e}")
+                skipped_files += 1
                 continue
         
-        return simplified_diff
+        stats = {
+            'total_files_found': len(files_to_scan),
+            'processed_files': processed_files,
+            'skipped_files': skipped_files,
+            'total_lines': total_lines
+        }
+        
+        return simplified_diff, stats
     
-    def scan_repository(
+    def  scan_repository(
         self,
         system_prompt: str,
         files_to_scan: List[str] = None,
@@ -225,7 +283,7 @@ class RepoScanner:
         
         # 创建虚拟diff
         console.print("[green]:arrows_counterclockwise: 正在创建虚拟diff文件...")
-        virtual_diff = self.create_virtual_diff(files_to_scan)
+        virtual_diff, scan_stats = self.create_virtual_diff(files_to_scan)
         
         if not virtual_diff.strip():
             console.print("[yellow]没有找到可扫描的内容")
@@ -270,7 +328,7 @@ class RepoScanner:
             console.print(f"[red]虚拟diff格式错误: {str(e)}")
             console.print("[yellow]尝试使用简化的diff格式...")
             # 如果标准格式失败，使用简化格式
-            virtual_diff = self._create_simplified_diff(files_to_scan)
+            virtual_diff, _ = self._create_simplified_diff(files_to_scan)
 
         # 执行审查
         worker_responses = []
@@ -333,26 +391,9 @@ class RepoScanner:
         for response in worker_responses:
             categories_dict[response.category] = response.comments
         
-        # 生成摘要
-        console.print(f"\n[bold blue]正在生成审查摘要...[/bold blue]")
-        console.print(f"[dim]├─ 使用模型: {self.planner_model}")
-        try:
-            import time
-            summary_start = time.time()
-            
-            planner = CodeReviewer(
-                ollama_client=self.ollama_client,
-                code_indexer=self.code_indexer,
-                planner_model=self.planner_model,
-                worker_model=self.worker_model
-            )
-            summary = planner._generate_changelog(virtual_diff, request)
-            
-            summary_end = time.time()
-            console.print(f"[green]✓ 摘要生成完成 (耗时: {summary_end - summary_start:.1f}s)")
-        except Exception as e:
-            console.print(f"[red]✗ 生成摘要时出错: {str(e)}")
-            summary = "无法生成摘要"
+        # 跳过摘要生成（仓库扫描模式下不需要）
+        console.print(f"\n[bold blue]跳过摘要生成（仓库扫描模式）[/bold blue]")
+        summary = "仓库扫描完成 - 已跳过摘要生成"
         
         from .models import CodeReviewResponse
         result = CodeReviewResponse(categories=categories_dict, summary=summary)
@@ -437,29 +478,36 @@ def main(repo, files, categories, prompt, ollama_host, planner_model, worker_mod
             categories=categories_to_run,
             reindex=reindex
         )
-        
-        # 格式化结果
-        virtual_diff = scanner.create_virtual_diff(files_to_scan)
+        print(result)
+        print("=================================================")
+        # # 格式化结果
+        virtual_diff, _ = scanner.create_virtual_diff(files_to_scan)
         formatted_result = format_review(virtual_diff, result, format_type, repo)
         
         # 确定输出文件路径和扩展名
         os.makedirs(output_dir, exist_ok=True)
         output_file = os.path.join(output_dir, "repo_scan_results.md")
         
-        # 保存结果到文件
+        # 将格式化结果输出到文件中
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(formatted_result)
         
         console.print(f"[green]:white_check_mark: 扫描结果已保存到 [bold]{output_file}[/bold]")
         
-        # 在控制台显示预览
-        console.print("\n" + "="*50)
-        console.print("仓库扫描结果预览", style="bold blue underline")
-        console.print("="*50)
-        # 只显示前1000个字符作为预览
-        preview = formatted_result[:1000] + "..." if len(formatted_result) > 1000 else formatted_result
-        console.print(preview)
-        console.print(f"\n[dim]完整结果请查看文件: {output_file}[/dim]")
+        # # 保存结果到文件
+        # with open(output_file, 'w', encoding='utf-8') as f:
+        #     f.write(formatted_result)
+        
+        # console.print(f"[green]:white_check_mark: 扫描结果已保存到 [bold]{output_file}[/bold]")
+        
+        # # 在控制台显示预览
+        # console.print("\n" + "="*50)
+        # console.print("仓库扫描结果预览", style="bold blue underline")
+        # console.print("="*50)
+        # # 只显示前1000个字符作为预览
+        # preview = formatted_result[:1000] + "..." if len(formatted_result) > 1000 else formatted_result
+        # console.print(preview)
+        # console.print(f"\n[dim]完整结果请查看文件: {output_file}[/dim]")
             
     except Exception as e:
         console.print(f"[red]扫描过程中出错: {str(e)}")
