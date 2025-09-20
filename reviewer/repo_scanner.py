@@ -101,7 +101,8 @@ class RepoScanner:
         self.code_indexer = CodeIndexer(
             repo_path=self.repo_path,
             embedding_model=self.embedding_model,
-            ollama_host=ollama_host
+            ollama_host=ollama_host,
+            collection_name=os.path.basename(self.repo_path)
         )
     
     def get_all_code_files(self) -> List[str]:
