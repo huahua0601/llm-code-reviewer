@@ -36,7 +36,7 @@ IGNORE_EXTENSIONS = {
     '.zip', '.tar', '.gz', '.rar', '.7z',
     '.pyc', '.class', '.o', '.so', '.dll', '.exe',
     '.lock', '.log',
-    '.chroma', '.DS_Store'
+    '.chroma', '.DS_Store', '.mmdb'
 }
 DEFAULT_EMBEDDING_MODEL = "nomic-embed-text"
 DEFAULT_COLLECTION_NAME = "code_repository"
