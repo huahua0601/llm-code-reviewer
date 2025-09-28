@@ -2,7 +2,8 @@ import os
 import re
 import json
 import hashlib
-from typing import List, Dict, Any
+import fnmatch
+from typing import List, Dict, Any, Union
 
 # 禁用ChromaDB遥测
 import sys
@@ -64,6 +65,68 @@ IGNORED_DIRS = {GIT_DIR_NAME, CHROMA_DIR_NAME, VENV_DIR_NAME, '.env'}
 FUNCTION_KEYWORDS = ["fun", "func", "def", "class"]
 
 
+def _match_ignored_pattern(path: str, patterns: Union[set, list]) -> bool:
+    """
+    检查路径是否匹配忽略模式
+    支持普通字符串匹配和glob模式匹配（如aa/*）
+    
+    Args:
+        path: 要检查的路径
+        patterns: 忽略模式集合或列表
+        
+    Returns:
+        bool: 如果匹配任何模式则返回True
+    """
+    if not patterns:
+        return False
+    
+    # 规范化路径（使用正斜杠）
+    normalized_path = path.replace('\\', '/')
+    
+    for pattern in patterns:
+        pattern_str = str(pattern).replace('\\', '/')
+        
+        # 如果包含通配符，使用fnmatch进行模式匹配
+        if '*' in pattern_str or '?' in pattern_str or '[' in pattern_str:
+            # 检查完整路径匹配
+            if fnmatch.fnmatch(normalized_path, pattern_str):
+                return True
+            
+            # 对于包含路径分隔符的模式，需要特殊处理
+            if '/' in pattern_str:
+                # 检查路径的各个前缀是否匹配模式
+                path_parts = normalized_path.split('/')
+                for i in range(len(path_parts)):
+                    # 检查从根开始的部分路径
+                    partial_path = '/'.join(path_parts[:i+1])
+                    if fnmatch.fnmatch(partial_path, pattern_str):
+                        return True
+            else:
+                # 对于简单模式（如test_*），检查路径的各个部分
+                path_parts = normalized_path.split('/')
+                for part in path_parts:
+                    if fnmatch.fnmatch(part, pattern_str):
+                        return True
+        else:
+            # 普通字符串匹配
+            if pattern_str == normalized_path:
+                return True
+            
+            # 检查目录匹配：pattern应该是完整的目录路径或目录名
+            path_parts = normalized_path.split('/')
+            
+            # 检查是否匹配任何路径部分
+            for part in path_parts:
+                if part == pattern_str:
+                    return True
+            
+            # 检查是否是路径前缀
+            if normalized_path.startswith(pattern_str + '/'):
+                return True
+    
+    return False
+
+
 class OllamaEmbeddingFunction(embedding_functions.EmbeddingFunction):
     def __init__(self, client, model):
         self.client = client
@@ -103,11 +166,18 @@ class CodeIndexer:
                 repo_path: str,
                 embedding_model: str = DEFAULT_EMBEDDING_MODEL,
                 collection_name: str = DEFAULT_COLLECTION_NAME,
-                ollama_host: str = DEFAULT_OLLAMA_HOST):
+                ollama_host: str = DEFAULT_OLLAMA_HOST,
+                ignore_extensions: set = None,
+                ignored_dirs: set = None):
         self.repo_path = os.path.abspath(repo_path)
         self.embedding_model = embedding_model
         self.collection_name = collection_name
-        self.ollama_host = ollama_host        
+        self.ollama_host = ollama_host
+        
+        # 使用配置的忽略规则，如果没有配置则使用默认值
+        self.ignore_extensions = ignore_extensions if ignore_extensions is not None else IGNORE_EXTENSIONS
+        self.ignored_dirs = ignored_dirs if ignored_dirs is not None else IGNORED_DIRS
+        
         self.db_path = os.path.join(self.repo_path, CHROMA_DIR_NAME)
         self.client = chromadb.PersistentClient(path=self.db_path)
         self.ollama_client = ollama.Client(host=ollama_host)        
@@ -176,6 +246,7 @@ class CodeIndexer:
     def should_index_file(self, file_path: str) -> bool:
         """
         Determine if a file should be indexed based on extension, gitignore rules, and other criteria
+        支持目录的模式匹配（如aa/*）
         """
         if CHROMA_DIR_NAME in file_path:
             return False
@@ -184,25 +255,18 @@ class CodeIndexer:
             return False
 
         _, ext = os.path.splitext(file_path)
-        if ext.lower() in IGNORE_EXTENSIONS:
+        if ext.lower() in self.ignore_extensions:
             return False
         
         if self.gitignore_matcher(file_path):
             return False
         
-        # Check for standard directory patterns using the relative path
+        # 获取相对路径用于模式匹配
         relative_path = os.path.relpath(file_path, self.repo_path)
-        normalized_relative_path = os.path.normpath(relative_path)
-        if normalized_relative_path.startswith(os.path.normpath(f"{GIT_DIR_NAME}/")) or \
-           normalized_relative_path == GIT_DIR_NAME:
+        
+        # 使用新的模式匹配函数检查忽略目录
+        if _match_ignored_pattern(relative_path, self.ignored_dirs):
             return False
-        if normalized_relative_path.startswith(os.path.normpath(f"{CHROMA_DIR_NAME}/")) or \
-            normalized_relative_path == CHROMA_DIR_NAME:
-             return False
-        # Explicitly check for .venv as the parser seems inconsistent here
-        if normalized_relative_path.startswith(os.path.normpath(f"{VENV_DIR_NAME}/")) or \
-            normalized_relative_path == VENV_DIR_NAME:
-             return False
 
         return True
     
@@ -300,7 +364,16 @@ class CodeIndexer:
         """Walks the repository and returns a list of (absolute_path, relative_path) for indexable files."""
         indexable_files = []
         for root, dirs, files in os.walk(self.repo_path, topdown=True):
-            dirs[:] = [d for d in dirs if d not in IGNORED_DIRS]
+            # 获取当前目录的相对路径用于模式匹配
+            current_relative_path = os.path.relpath(root, self.repo_path)
+            
+            # 过滤目录：使用模式匹配检查当前目录和子目录
+            dirs_to_keep = []
+            for d in dirs:
+                dir_relative_path = os.path.join(current_relative_path, d) if current_relative_path != '.' else d
+                if not _match_ignored_pattern(dir_relative_path, self.ignored_dirs):
+                    dirs_to_keep.append(d)
+            dirs[:] = dirs_to_keep
             
             for file in files:
                 file_path = os.path.join(root, file)

@@ -1,0 +1,252 @@
+成功加载配置文件: config.example.yaml
+日志将保存到: ./scan.log
+INFO     使用配置文件: config.example.yaml                                      
+INFO     开始代码仓库扫描                                                       
+警告: 未知的审查类别 'Performance'
+警告: 未知的审查类别 'Security'
+╭────────────────────────────── 仓库代码扫描配置 ──────────────────────────────╮
+│ 配置文件: config.example.yaml                                                │
+│ 仓库路径: /home/ubuntu/llm-code-review                                       │
+│ 扫描文件: 所有文件                                                           │
+│ 审查类别: Functionality, Design                                              │
+│ 输出目录: ./reports                                                          │
+│ 输出格式: markdown                                                           │
+│ Ollama主机: http://localhost:11434                                           │
+│ 规划模型: gpt-oss:20b                                                        │
+│ 工作器模型: qwen3-coder:30b                                                  │
+│ 嵌入模型: nomic-embed-text:latest                                            │
+╰──────────────────────────────────────────────────────────────────────────────╯
+🔄 正在索引仓库 /home/ubuntu/llm-code-review
+ℹ Re-indexing requested. Deleting existing collection 'llm-code-review'...
+✅ Collection 'llm-code-review' recreated.
+Discovering files to index in '/home/ubuntu/llm-code-review'...
+Found 28 indexable files. Processing and adding to collection...
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+INFO     HTTP Request: POST http://localhost:11434/api/embeddings "HTTP/1.1 200 
+         OK"                                                                    
+✅ Indexing complete. Indexed 26 files, 69 chunks.
+发现 28 个文件需要扫描
+🔄 正在创建虚拟diff文件...
+开始处理 28 个文件...
+├─ 已处理 10 个文件，累计 1,779 行代码
+├─ 已处理 20 个文件，累计 4,100 行代码
+✓ 文件处理完成:
+  ├─ 发现文件: 28 个
+  ├─ 成功处理: 26 个文件
+  ├─ 跳过文件: 2 个
+  └─ 总代码行数: 12,894 行
+🔄 正在执行代码审查...
+虚拟diff格式验证通过，包含 26 个文件
+
+开始执行代码审查，共 2 个审查类别
+INFO     开始执行代码审查，共 2 个审查类别                                      
+
+[1/2] 正在执行 Functionality 审查...
+INFO     开始 Functionality 审查 (1/2)                                          
+├─ 审查类别: Functionality
+├─ 使用模型: qwen3-coder:30b
+└─ 进度: 1/2 (50.0%)
+  ├─ 仓库扫描模式：正在提取所有代码行...
+  ├─ 已提取 12894 行代码
+  ├─ 仓库扫描模式：跳过上下文检索（所有文件已包含）
+
+=================================================
+  ├─ 代码量较大，分 7 批处理
+  ├─ 正在处理第 1/7 批 (2000 行代码)
+  ├─ (批次 1/7) 正在生成审查提示...
+  ├─ (批次 1/7) 正在调用 qwen3-coder:30b 模型进行审查（流式模式）...
+INFO     HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"   
+  ├─ (批次 1/7) LLM 流式响应完成 (耗时: 74.7s)
+  ├─ (批次 1/7) 正在解析审查结果...
+  ├─ 解析LLM响应 (842 字符)
+  ├─ 找到JSON格式数据
+  ├─ JSON解析成功，提取到 3 条建议
+  └─ (批次 1/7) 解析完成，生成 3 条建议
+  ├─ 正在处理第 2/7 批 (2000 行代码)
+  ├─ (批次 2/7) 正在生成审查提示...
+  ├─ (批次 2/7) 正在调用 qwen3-coder:30b 模型进行审查（流式模式）...
+INFO     HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"   
+  ├─ (批次 2/7) LLM 流式响应完成 (耗时: 65.0s)
+  ├─ (批次 2/7) 正在解析审查结果...
+  ├─ 解析LLM响应 (952 字符)
+  ├─ 找到JSON格式数据
+  ├─ JSON解析成功，提取到 4 条建议
+  └─ (批次 2/7) 解析完成，生成 4 条建议
+  ├─ 正在处理第 3/7 批 (2000 行代码)
+  ├─ (批次 3/7) 正在生成审查提示...
+  ├─ (批次 3/7) 正在调用 qwen3-coder:30b 模型进行审查（流式模式）...
+INFO     HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"   
+  ├─ (批次 3/7) LLM 流式响应完成 (耗时: 64.4s)
+  ├─ (批次 3/7) 正在解析审查结果...
+  ├─ 解析LLM响应 (863 字符)
+  ├─ 找到JSON格式数据
+  ├─ JSON解析成功，提取到 3 条建议
+  └─ (批次 3/7) 解析完成，生成 3 条建议
+  ├─ 正在处理第 4/7 批 (2000 行代码)
+  ├─ (批次 4/7) 正在生成审查提示...
+  ├─ (批次 4/7) 正在调用 qwen3-coder:30b 模型进行审查（流式模式）...
+INFO     HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"   
+  ├─ (批次 4/7) LLM 流式响应完成 (耗时: 61.0s)
+  ├─ (批次 4/7) 正在解析审查结果...
+  ├─ 解析LLM响应 (628 字符)
+  ├─ 找到JSON格式数据
+  ├─ JSON解析成功，提取到 2 条建议
+  └─ (批次 4/7) 解析完成，生成 2 条建议
+  ├─ 正在处理第 5/7 批 (2000 行代码)
+  ├─ (批次 5/7) 正在生成审查提示...
+  ├─ (批次 5/7) 正在调用 qwen3-coder:30b 模型进行审查（流式模式）...
+INFO     HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"   
+  ├─ (批次 5/7) LLM 流式响应完成 (耗时: 56.7s)
+  ├─ (批次 5/7) 正在解析审查结果...
+  ├─ 解析LLM响应 (321 字符)
+  ├─ 找到JSON格式数据
+  ├─ JSON解析成功，提取到 1 条建议
+  └─ (批次 5/7) 解析完成，生成 1 条建议
+  ├─ 正在处理第 6/7 批 (2000 行代码)
+  ├─ (批次 6/7) 正在生成审查提示...
+  ├─ (批次 6/7) 正在调用 qwen3-coder:30b 模型进行审查（流式模式）...
+INFO     HTTP Request: POST http://localhost:11434/api/chat "HTTP/1.1 200 OK"   
+  ├─ (批次 6/7) LLM 流式响应完成 (耗时: 60.8s)
+  ├─ (批次 6/7) 正在解析审查结果...
+  ├─ 解析LLM响应 (622 字符)
+  ├─ 找到JSON格式数据
+  ├─ JSON解析成功，提取到 2 条建议
+  └─ (批次 6/7) 解析完成，生成 2 条建议
+  ├─ 正在处理第 7/7 批 (894 行代码)
+  ├─ (批次 7/7) 正在生成审查提示...
+  ├─ (批次 7/7) 正在调用 qwen3-coder:30b 模型进行审查（流式模式）...

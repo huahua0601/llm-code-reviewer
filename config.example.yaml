@@ -1,0 +1,65 @@
+# 代码仓库扫描器配置文件示例
+# 支持YAML和JSON格式
+
+# 基本配置
+repo: "/home/ubuntu/llm-code-review"  # 仓库根目录路径
+prompt: "重点检查安全性、逻辑错误、边界情况、安全漏洞、性能问题"  # 系统提示词
+
+# 模型配置
+ollama_host: "http://localhost:11434"  # Ollama API主机地址
+planner_model: "gpt-oss:20b"          # 规划和摘要模型
+worker_model: "qwen3-coder:30b"       # 工作器模型
+embedding_model: "nomic-embed-text:latest"  # 嵌入模型
+
+# 扫描配置
+# files:  # 要扫描的文件列表（可选，不指定则扫描所有文件）
+#   - "src/**/*.py"
+#   - "api/**/*.py"
+#   - "models/**/*.py"
+# 或者使用字符串格式: files: "src/**/*.py,api/**/*.py,models/**/*.py"
+# 注释掉files配置以扫描所有文件
+
+categories:  # 要执行的审查类别（可选，不指定则执行所有类别）
+  - "Functionality"
+  - "Design"
+  - "Performance"
+  - "Security"
+# 或者使用字符串格式: categories: "Functionality,Design,Performance,Security"
+
+# 输出配置
+format: "markdown"           # 输出格式 (仅支持markdown)
+output_dir: "./reports"      # 输出目录路径
+
+# 日志配置
+log_file: "./scan.log"       # 日志文件路径（可选）
+log_level: "INFO"           # 日志级别: DEBUG, INFO, WARNING, ERROR
+
+# 索引配置（可选，不指定则使用默认配置）
+ignore_extensions:          # 要忽略的文件扩展名
+  - ".jpg"
+  - ".jpeg"
+  - ".png"
+  - ".gif"
+  - ".pdf"
+  - ".zip"
+  - ".tar"
+  - ".gz"
+  - ".pyc"
+  - ".log"
+# 或者使用字符串格式: ignore_extensions: ".jpg,.jpeg,.png,.gif,.pdf"
+
+ignored_dirs:               # 要忽略的目录名（支持glob模式匹配）
+  - ".git"
+  - ".chroma"
+  - ".venv"
+  - "node_modules"
+  - "__pycache__"
+  - ".pytest_cache"
+  - "test_*"              # 忽略所有以test_开头的目录
+  - "*/temp"              # 忽略任何路径下的temp目录
+  - "build/*"             # 忽略build目录下的所有内容
+  - "docs/*/generated"    # 忽略docs下任何子目录中的generated目录
+# 或者使用字符串格式: ignored_dirs: ".git,.chroma,.venv,node_modules,test_*,*/temp"
+
+# 其他选项
+reindex: true              # 是否强制重新索引代码库

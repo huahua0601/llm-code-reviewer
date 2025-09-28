@@ -1,0 +1,59 @@
+{
+  "_comment": "代码仓库扫描器配置文件示例 - JSON格式",
+  
+  "repo": "/home/ubuntu/dify/api",
+  "prompt": "重点检查安全性、逻辑错误、边界情况、安全漏洞、性能问题",
+  
+  "ollama_host": "http://localhost:11434",
+  "planner_model": "gpt-oss:20b",
+  "worker_model": "qwen3-coder:30b",
+  "embedding_model": "nomic-embed-text:latest",
+  
+  "_comment_files": "注释掉files配置以扫描所有文件",
+  "_files": [
+    "src/**/*.py",
+    "api/**/*.py",
+    "models/**/*.py"
+  ],
+  
+  "categories": [
+    "Functionality",
+    "Design",
+    "Performance", 
+    "Security"
+  ],
+  
+  "format": "markdown",
+  "output_dir": "./reports",
+  
+  "log_file": "./scan.log",
+  "log_level": "INFO",
+  
+  "ignore_extensions": [
+    ".jpg",
+    ".jpeg", 
+    ".png",
+    ".gif",
+    ".pdf",
+    ".zip",
+    ".tar",
+    ".gz",
+    ".pyc",
+    ".log"
+  ],
+  
+  "ignored_dirs": [
+    ".git",
+    ".chroma",
+    ".venv",
+    "node_modules",
+    "__pycache__",
+    ".pytest_cache",
+    "test_*",
+    "*/temp",
+    "build/*",
+    "docs/*/generated"
+  ],
+  
+  "reindex": false
+}

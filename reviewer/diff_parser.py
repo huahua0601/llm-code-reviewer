@@ -59,9 +59,8 @@ def extract_modified_files(git_diff: str) -> Set[str]:
         file_path = patched_file.path
         if file_path.startswith('b/'):
             file_path = file_path[2:]
-        # Extract only the filename, not the full path
-        file_name = os.path.basename(file_path)
-        modified_files.add(file_name)
+        # Keep the full relative path for better file identification
+        modified_files.add(file_path)
 
     return modified_files
 
@@ -85,10 +84,9 @@ def extract_modified_symbols(git_diff: str) -> Dict[str, Set[str]]:
         file_path = patched_file.path
         if file_path.startswith('b/'):
             file_path = file_path[2:]
-        # Extract only the filename, not the full path
-        current_file_basename = os.path.basename(file_path)
-        if current_file_basename not in modified_symbols:
-            modified_symbols[current_file_basename] = set()
+        # Keep the full relative path for better file identification
+        if file_path not in modified_symbols:
+            modified_symbols[file_path] = set()
 
         for hunk in patched_file:
             for line in hunk:
@@ -102,6 +100,6 @@ def extract_modified_symbols(git_diff: str) -> Dict[str, Set[str]]:
                         for match in matches:
                             symbol_name = match.group(1)
                             if symbol_name:
-                                modified_symbols[current_file_basename].add(symbol_name)
+                                modified_symbols[file_path].add(symbol_name)
 
     return modified_symbols

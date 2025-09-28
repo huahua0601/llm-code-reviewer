@@ -222,7 +222,7 @@ def worker_system_prompt(category, subcategories):
     Respond ONLY with a valid JSON array of comments. Each comment MUST have "comment" and "severity" fields:
     [
       {{
-         "file_name": "example.py", // optional
+         "file_name": "example.py", // optional - use FULL relative path from diff headers (e.g., "src/example.py" not just "example.py")
          "line_number": 42, // optional
          "comment": "Your critical feedback goes here", // REQUIRED
          "severity": "High" // REQUIRED: Critical, High, Medium, or Low
@@ -238,6 +238,7 @@ def worker_system_prompt(category, subcategories):
     IMPORTANT: Most naming and readability issues should be Low or Medium unless they significantly impact maintainability.
     
     Only include file_name and line_number if your comment applies to a specific line.
+    IMPORTANT: When specifying file_name, use the FULL relative path as shown in the diff headers (e.g., "lambda/lambda-handler.py", not just "lambda-handler.py").
     If you have no comments for this category within the diff, return an empty array [].
     """
 
@@ -288,6 +289,7 @@ def worker_user_prompt(category, code_to_review, context):
     IMPORTANT: Most naming, Coding Style and readability issues should be Low or Medium unless they significantly impact maintainability.
     
     Only include file_name and line_number if your comment applies to a specific line.
+    IMPORTANT: When specifying file_name, use the FULL relative path as shown in the diff headers (e.g., "lambda/lambda-handler.py", not just "lambda-handler.py").
     If you have no comments for this category within the diff, return an empty array [].
     """
 

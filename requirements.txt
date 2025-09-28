@@ -10,3 +10,4 @@ pandas==2.2.3
 rerankers[flashrank]==0.9.1
 pytest==8.3.5
 unidiff==0.7.5
+PyYAML==6.0.2

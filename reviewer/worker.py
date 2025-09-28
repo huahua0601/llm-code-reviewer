@@ -168,6 +168,7 @@ class CodeReviewWorker:
         # Normalize file path (remove b/ prefix if present)
         if file_name and file_name.startswith('b/'):
             file_name = file_name[2:]
+        
 
         line_number = None
         if "line_number" in comment_data:
