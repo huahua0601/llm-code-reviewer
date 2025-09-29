@@ -64,9 +64,9 @@ class MarkdownFormatter(CodeReviewFormatter):
             md_output.append("\n## Changelog\n")
             md_output.append(f"{self.response.summary}\n")
 
-        md_output.append("## Review Comments\n")
-        md_output.append("| File | Line | Category | Severity | Comment |")
-        md_output.append("|------|------|----------|----------|---------|")
+        # md_output.append("## Review Comments\n")
+        # md_output.append("| File | Line | Category | Severity | Comment |")
+        # md_output.append("|------|------|----------|----------|---------|")
         
         # Sort comments by severity (Critical > High > Medium > Low)
         severity_order = {
@@ -83,18 +83,18 @@ class MarkdownFormatter(CodeReviewFormatter):
                     continue
                 all_comments.append(comment)
         
-        # Sort by severity, then by category
-        all_comments.sort(key=lambda c: (
-            severity_order.get(c.severity, 999),
-            c.category.value if c.category else ""
-        ))
+        # # Sort by severity, then by category
+        # all_comments.sort(key=lambda c: (
+        #     severity_order.get(c.severity, 999),
+        #     c.category.value if c.category else ""
+        # ))
         
-        for comment in all_comments:
-            file_name = comment.file_name if comment.file_name else "-"
-            line_no = str(comment.line_number) if comment.line_number else "-"
-            severity = comment.severity.value if comment.severity else "Medium"
-            severity_emoji = self._get_severity_emoji(comment.severity)
-            md_output.append(f"| {file_name} | {line_no} | {comment.category.value} | {severity_emoji} {severity} | {comment.comment} |")
+        # for comment in all_comments:
+        #     file_name = comment.file_name if comment.file_name else "-"
+        #     line_no = str(comment.line_number) if comment.line_number else "-"
+        #     severity = comment.severity.value if comment.severity else "Medium"
+        #     severity_emoji = self._get_severity_emoji(comment.severity)
+        #     md_output.append(f"| {file_name} | {line_no} | {comment.category.value} | {severity_emoji} {severity} | {comment.comment} |")
         
         # Add detailed sections for each file with comments
         md_output.append("\n## Details by File\n")

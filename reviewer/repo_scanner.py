@@ -468,7 +468,6 @@ class RepoScanner:
             files_to_scan = self.get_all_code_files()
         
         console.print(f"[blue]发现 {len(files_to_scan)} 个文件需要扫描")
-        
         # 创建虚拟diff
         console.print("[green]:arrows_counterclockwise: 正在创建虚拟diff文件...")
         virtual_diff, scan_stats = self.create_virtual_diff(files_to_scan)
@@ -767,20 +766,12 @@ def main(config, repo, files, categories, prompt, ollama_host, planner_model, wo
         
         console.print(f"[green]:white_check_mark: 扫描结果已保存到 [bold]{output_file}[/bold]")
         
-        # # 保存结果到文件
-        # with open(output_file, 'w', encoding='utf-8') as f:
-        #     f.write(formatted_result)
+        # 保存结果到文件
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(formatted_result)
         
-        # console.print(f"[green]:white_check_mark: 扫描结果已保存到 [bold]{output_file}[/bold]")
-        
-        # # 在控制台显示预览
-        # console.print("\n" + "="*50)
-        # console.print("仓库扫描结果预览", style="bold blue underline")
-        # console.print("="*50)
-        # # 只显示前1000个字符作为预览
-        # preview = formatted_result[:1000] + "..." if len(formatted_result) > 1000 else formatted_result
-        # console.print(preview)
-        # console.print(f"\n[dim]完整结果请查看文件: {output_file}[/dim]")
+        console.print(f"[green]:white_check_mark: 扫描结果已保存到 [bold]{output_file}[/bold]")
+        console.print(f"\n[dim]完整结果请查看文件: {output_file}[/dim]")
             
     except Exception as e:
         console.print(f"[red]扫描过程中出错: {str(e)}")

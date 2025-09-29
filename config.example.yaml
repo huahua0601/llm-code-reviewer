@@ -46,6 +46,7 @@ ignore_extensions:          # 要忽略的文件扩展名
   - ".gz"
   - ".pyc"
   - ".log"
+  - ".md"
 # 或者使用字符串格式: ignore_extensions: ".jpg,.jpeg,.png,.gif,.pdf"
 
 ignored_dirs:               # 要忽略的目录名（支持glob模式匹配）
@@ -59,6 +60,7 @@ ignored_dirs:               # 要忽略的目录名（支持glob模式匹配）
   - "*/temp"              # 忽略任何路径下的temp目录
   - "build/*"             # 忽略build目录下的所有内容
   - "docs/*/generated"    # 忽略docs下任何子目录中的generated目录
+  - "*/templates/*"       # 忽略任何路径下的templates目录
 # 或者使用字符串格式: ignored_dirs: ".git,.chroma,.venv,node_modules,test_*,*/temp"
 
 # 其他选项
