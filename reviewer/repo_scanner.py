@@ -474,6 +474,7 @@ class RepoScanner:
         if files_to_scan is None:
             files_to_scan = self.get_all_code_files()
         
+        console.print(f"[blue]files_to_scan: {files_to_scan}")
         console.print(f"[blue]发现 {len(files_to_scan)} 个文件需要扫描")
         
         if not files_to_scan:
