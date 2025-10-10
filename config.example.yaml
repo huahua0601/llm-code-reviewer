@@ -2,7 +2,7 @@
 # 支持YAML和JSON格式
 
 # 基本配置
-repo: "/home/ubuntu/llm-code-review"  # 仓库根目录路径
+repo: "/home/ubuntu/learn-python3"  # 仓库根目录路径
 prompt: "重点检查安全性、逻辑错误、边界情况、安全漏洞、性能问题"  # 系统提示词
 
 # 模型配置
@@ -47,6 +47,8 @@ ignore_extensions:          # 要忽略的文件扩展名
   - ".pyc"
   - ".log"
   - ".md"
+  - ".wav"
+  - "LICENSE"
 # 或者使用字符串格式: ignore_extensions: ".jpg,.jpeg,.png,.gif,.pdf"
 
 ignored_dirs:               # 要忽略的目录名（支持glob模式匹配）
@@ -61,6 +63,7 @@ ignored_dirs:               # 要忽略的目录名（支持glob模式匹配）
   - "build/*"             # 忽略build目录下的所有内容
   - "docs/*/generated"    # 忽略docs下任何子目录中的generated目录
   - "*/templates/*"       # 忽略任何路径下的templates目录
+  - "docs/*"
 # 或者使用字符串格式: ignored_dirs: ".git,.chroma,.venv,node_modules,test_*,*/temp"
 
 # 其他选项

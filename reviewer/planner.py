@@ -49,7 +49,7 @@ class CodeReviewer:
                 # Add delay between requests to give Ollama time to recover
                 time.sleep(1)
                 print(f"Running {worker.category} review...")
-                response = worker.review(request.git_diff, request.system_prompt)
+                response = worker.review(request.git_diff, request.system_prompt, request.is_repo_scan)
                 worker_responses.append(response)
             except Exception as e:
                 print(f"Error in worker {worker.category}: {str(e)}")

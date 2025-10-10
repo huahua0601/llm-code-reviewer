@@ -59,6 +59,10 @@ class CodeReviewRequest(BaseModel):
         default=False,
         description="Force reindexing of the codebase even if an index already exists"
     )
+    is_repo_scan: bool = Field(
+        default=False,
+        description="Whether this is a repository scan mode (vs diff review mode)"
+    )
 
 
 class WorkerResponse(BaseModel):

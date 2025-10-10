@@ -213,15 +213,6 @@ class RepoScanner:
             indexable_files = self.code_indexer._get_indexable_files()
             for abs_path, rel_path in indexable_files:
                 code_files.append(rel_path)
-            
-            # 如果indexer返回的文件数量异常少，使用备用方法
-            if len(code_files) < 10:  # 假设一个正常的代码仓库至少有10个文件
-                console.print(f"[yellow]警告: indexer只发现了 {len(code_files)} 个文件，这似乎不正常，使用备用文件发现方法")
-                fallback_files = self._get_files_fallback()
-                if len(fallback_files) > len(code_files):
-                    console.print(f"[blue]备用方法发现了 {len(fallback_files)} 个文件，使用备用结果")
-                    code_files = fallback_files
-                    
         except Exception as e:
             # 如果indexer出错，使用备用的文件发现方法
             console.print(f"[yellow]警告: indexer出错 ({str(e)})，使用备用文件发现方法")
@@ -315,7 +306,6 @@ class RepoScanner:
         
         virtual_diff = ""
         total_lines = 0
-        total_files = 0
         processed_files = 0
         skipped_files = 0
         
@@ -459,10 +449,6 @@ class RepoScanner:
         Returns:
             审查结果
         """
-        # 索引仓库
-        console.print(f"[green]:arrows_counterclockwise: 正在索引仓库 {self.repo_path}")
-        self.code_indexer.index_repository(force_reindex=reindex)
-        
         # 获取要扫描的文件
         if files_to_scan is None:
             files_to_scan = self.get_all_code_files()
@@ -488,7 +474,8 @@ class RepoScanner:
                 "worker": self.worker_model,
                 "embedding": self.embedding_model
             },
-            reindex=reindex
+            reindex=reindex,
+            is_repo_scan=True
         )
         
         # 执行代码审查
@@ -540,7 +527,7 @@ class RepoScanner:
                 # 执行审查
                 import time
                 start_time = time.time()
-                response = worker.review(virtual_diff, system_prompt)
+                response = worker.review(virtual_diff, system_prompt, is_repo_scan=True)
                 end_time = time.time()
                 
                 worker_responses.append(response)

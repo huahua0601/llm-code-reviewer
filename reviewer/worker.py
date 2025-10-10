@@ -463,15 +463,15 @@ class CodeReviewWorker:
         return default_severity
 
     
-    def review(self, git_diff: str, system_prompt: str) -> WorkerResponse:
+    def review(self, git_diff: str, system_prompt: str, is_repo_scan: bool = False) -> WorkerResponse:
         """
         Perform the code review for a specific category using Ollama and RAG context.
-        """
-        # 检测是否为仓库扫描模式
-        from .diff_parser import extract_modified_files
-        modified_files = extract_modified_files(git_diff)
-        is_repo_scan = len(modified_files) > 10 or "new file mode 100644" in git_diff
         
+        Args:
+            git_diff: The git diff content to review
+            system_prompt: The system prompt for the review
+            is_repo_scan: Whether this is a repository scan mode (vs diff review mode)
+        """
         if is_repo_scan:
             return self._review_repo_scan(git_diff, system_prompt)
         else:
