@@ -529,7 +529,8 @@ class CodeReviewWorker:
                 formatted_code = self._format_file_for_review(file_path, file_content)
                 
                 # 获取该文件的上下文（可选）
-                context_str = self._get_file_context(file_path)
+                # context_str = self._get_file_context(file_path)
+                context_str = ""  # 临时禁用上下文检索
                 
                 # 对单个文件进行审查
                 file_response = self._perform_single_review(
