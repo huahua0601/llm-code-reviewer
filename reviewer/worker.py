@@ -202,6 +202,15 @@ class CodeReviewWorker:
         # 智能调整严重程度基于评论内容
         severity = self._adjust_severity_based_on_content(comment_text, severity)
 
+        # 提取示例代码
+        example_code = None
+        if "example_code" in comment_data:
+            example_code = comment_data["example_code"]
+        elif "example" in comment_data:
+            example_code = comment_data["example"]
+        elif "suggested_code" in comment_data:
+            example_code = comment_data["suggested_code"]
+
         # Return None if comment is invalid or lacks essential info
         if not comment_text or not file_name:
             print(f"Warning: Skipping comment due to missing text or file name: {comment_data}")
@@ -212,7 +221,8 @@ class CodeReviewWorker:
             file_name=file_name,
             line_number=line_number,
             comment=comment_text,
-            severity=severity
+            severity=severity,
+            example_code=example_code
         )
     
     def parse_llm_response(self, response) -> List[CodeReviewComment]:

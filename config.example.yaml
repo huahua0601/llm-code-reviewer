@@ -2,7 +2,7 @@
 # 支持YAML和JSON格式
 
 # 基本配置
-repo: "/home/ubuntu/auto_tag_resource"  # 仓库根目录路径
+repo: "/home/ubuntu/learn-python3"  # 仓库根目录路径
 prompt: "重点检查安全性、逻辑错误、边界情况、安全漏洞、性能问题"  # 系统提示词
 
 # 模型配置

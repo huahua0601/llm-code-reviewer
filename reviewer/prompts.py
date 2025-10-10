@@ -219,13 +219,14 @@ def worker_system_prompt(category, subcategories):
     Find critical issues related to:
     {subcategories}
     
-    Respond ONLY with a valid JSON array of comments. Each comment MUST have "comment" and "severity" fields:
+    Respond ONLY with a valid JSON array of comments. Each comment MUST have "comment", "severity", and "example_code" fields:
     [
       {{
          "file_name": "example.py", // optional - use FULL relative path from diff headers (e.g., "src/example.py" not just "example.py")
          "line_number": 42, // optional
          "comment": "Your critical feedback goes here", // REQUIRED
-         "severity": "High" // REQUIRED: Critical, High, Medium, or Low
+         "severity": "High", // REQUIRED: Critical, High, Medium, or Low
+         "example_code": "// 示例代码展示如何修复问题\nif (input != null && input.isNotEmpty()) {{\n    // 修复后的代码\n}}" // REQUIRED: 提供修复示例
        }}
     ]              
     
@@ -264,7 +265,8 @@ def worker_user_prompt(category, code_to_review, context):
          "file_name": "Example.kt",
          "line_number": 123,
          "comment": "Critical feedback with improvement suggestion",
-         "severity": "High"
+         "severity": "High",
+         "example_code": "// 示例代码展示如何修复问题\nif (input != null && input.isNotEmpty()) {{\n    // 修复后的代码\n}}"
       }}
     ]
     
@@ -274,7 +276,8 @@ def worker_user_prompt(category, code_to_review, context):
          "file_name": "test.py",
          "line_number": 45,
          "comment": "This function lacks error handling for invalid input",
-         "severity": "High"
+         "severity": "High",
+         "example_code": "def process_data(data):\n    if not data:\n        raise ValueError(\"Data cannot be empty\")\n    # 处理数据的逻辑\n    return processed_data"
       }}
     ]
     

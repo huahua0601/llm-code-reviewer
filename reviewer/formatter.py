@@ -110,6 +110,18 @@ class MarkdownFormatter(CodeReviewFormatter):
                 severity_emoji = self._get_severity_emoji(comment.severity)
                 severity_text = comment.severity.value if comment.severity else "Medium"
                 md_output.append(f"- **{line_info}** ({comment.category.value}) {severity_emoji} **{severity_text}**: {comment.comment}")
+                
+                # 如果有示例代码，显示它
+                if comment.example_code:
+                    md_output.append("")
+                    md_output.append("  **示例代码:**")
+                    md_output.append("  ```")
+                    # 为示例代码添加适当的缩进
+                    example_lines = comment.example_code.split('\n')
+                    for line in example_lines:
+                        md_output.append(f"  {line}")
+                    md_output.append("  ```")
+                    md_output.append("")
             
             md_output.append("")  # Empty line between files
         

@@ -765,7 +765,6 @@ def main(config, repo, files, categories, prompt, ollama_host, planner_model, wo
             categories=categories_to_run,
             reindex=reindex
         )
-        print(result)
         print("=================================================")
         # # 格式化结果
         virtual_diff, _ = scanner.create_virtual_diff(files_to_scan)

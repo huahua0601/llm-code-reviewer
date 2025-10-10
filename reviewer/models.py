@@ -30,6 +30,10 @@ class CodeReviewComment(BaseModel):
     line_number: Optional[int] = None
     comment: str
     severity: Optional[SeverityLevel] = None
+    example_code: Optional[str] = Field(
+        default=None,
+        description="示例代码，展示如何修复问题"
+    )
 
 
 class CodeReviewRequest(BaseModel):
