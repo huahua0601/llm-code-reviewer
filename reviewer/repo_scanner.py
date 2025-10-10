@@ -186,13 +186,15 @@ class RepoScanner:
         worker_model: str = DEFAULT_WORKER_MODEL,
         embedding_model: str = DEFAULT_EMBEDDING_MODEL,
         ignore_extensions: set = None,
-        ignored_dirs: set = None
+        ignored_dirs: set = None,
+        enable_vectorization: bool = False  # 仓库扫描模式默认不启用向量化
     ):
         self.repo_path = os.path.abspath(repo_path)
         self.ollama_client = OllamaClient(host=ollama_host)
         self.planner_model = planner_model
         self.worker_model = worker_model
         self.embedding_model = embedding_model
+        self.enable_vectorization = enable_vectorization
         self.logger = logging.getLogger(__name__)
         
         # 初始化代码索引器
@@ -219,6 +221,15 @@ class RepoScanner:
             code_files = self._get_files_fallback()
         
         return code_files
+    
+    def _has_existing_index(self) -> bool:
+        """检查是否已存在向量化索引"""
+        try:
+            # 检查 ChromaDB 集合是否存在且有数据
+            collection_count = self.code_indexer.collection.count()
+            return collection_count > 0
+        except Exception:
+            return False
     
     def _get_files_fallback(self) -> List[str]:
         """备用的文件发现方法，不依赖indexer"""
@@ -430,7 +441,7 @@ class RepoScanner:
         
         return simplified_diff, stats
     
-    def  scan_repository(
+    def scan_repository(
         self,
         system_prompt: str,
         files_to_scan: List[str] = None,
@@ -438,7 +449,7 @@ class RepoScanner:
         reindex: bool = False
     ) -> str:
         """
-        扫描整个代码仓库
+        扫描整个代码仓库 - 按文件为单位进行扫描
         
         Args:
             system_prompt: 系统提示词
@@ -449,20 +460,30 @@ class RepoScanner:
         Returns:
             审查结果
         """
+        # 根据配置决定是否进行向量化索引
+        if self.enable_vectorization:
+            if reindex or not self._has_existing_index():
+                console.print(f"[green]:arrows_counterclockwise: 正在索引仓库 {self.repo_path}")
+                self.code_indexer.index_repository(force_reindex=reindex)
+            else:
+                console.print(f"[blue]:information: 使用现有向量化索引")
+        else:
+            console.print(f"[blue]:information: 跳过向量化索引（仓库扫描模式，直接扫描文件）")
+        
         # 获取要扫描的文件
         if files_to_scan is None:
             files_to_scan = self.get_all_code_files()
         
         console.print(f"[blue]发现 {len(files_to_scan)} 个文件需要扫描")
-        # 创建虚拟diff
+        
+        if not files_to_scan:
+            console.print("[yellow]没有找到可扫描的文件")
+            from .models import CodeReviewResponse
+            return CodeReviewResponse(categories={}, summary="没有找到可扫描的文件")
+        
+        # 创建虚拟diff用于兼容性（但实际扫描会按文件进行）
         console.print("[green]:arrows_counterclockwise: 正在创建虚拟diff文件...")
         virtual_diff, scan_stats = self.create_virtual_diff(files_to_scan)
-        
-        if not virtual_diff.strip():
-            console.print("[yellow]没有找到可扫描的内容")
-            # 返回空的CodeReviewResponse对象而不是字符串
-            from .models import CodeReviewResponse
-            return CodeReviewResponse(categories={}, summary="没有找到可扫描的内容")
         
         # 创建审查请求
         request = CodeReviewRequest(
@@ -493,6 +514,8 @@ class RepoScanner:
                 code_indexer=self.code_indexer,
                 model=self.worker_model
             )
+            # 设置是否启用上下文检索
+            worker.enable_context_retrieval = self.enable_vectorization
             workers.append(worker)
         
         # 验证虚拟diff格式
@@ -508,7 +531,7 @@ class RepoScanner:
 
         # 执行审查
         worker_responses = []
-        start_msg = f"开始执行代码审查，共 {len(workers)} 个审查类别"
+        start_msg = f"开始执行代码审查，共 {len(workers)} 个审查类别，{len(files_to_scan)} 个文件"
         console.print(f"\n[bold green]{start_msg}[/bold green]")
         self.logger.info(start_msg)
         
@@ -522,6 +545,8 @@ class RepoScanner:
                 
                 console.print(f"[dim]├─ 审查类别: {worker.category.value}")
                 console.print(f"[dim]├─ 使用模型: {self.worker_model}")
+                console.print(f"[dim]├─ 扫描模式: 按文件扫描")
+                console.print(f"[dim]├─ 文件数量: {len(files_to_scan)}")
                 console.print(f"[dim]└─ 进度: {i}/{len(workers)} ({i/len(workers)*100:.1f}%)")
                 
                 # 执行审查
@@ -599,6 +624,7 @@ class RepoScanner:
 @click.option("--worker-model", default=DEFAULT_WORKER_MODEL, help="工作器模型")
 @click.option("--embedding-model", default=DEFAULT_EMBEDDING_MODEL, help="嵌入模型")
 @click.option("--reindex", is_flag=True, help="强制重新索引代码库")
+@click.option("--enable-vectorization", is_flag=True, help="启用向量化索引和上下文检索（默认关闭，仓库扫描模式通常不需要）")
 @click.option("--format", "format_type", type=click.Choice(["markdown"]), 
               default="markdown", help="输出格式 (仅支持markdown)")
 @click.option("--log-file", help="日志文件路径（可选，不指定则只输出到控制台）")
@@ -606,7 +632,7 @@ class RepoScanner:
               default="INFO", help="日志级别")
 @click.option("--output-dir", default=DEFAULT_OUTPUT_PATH, help="输出目录路径")
 def main(config, repo, files, categories, prompt, ollama_host, planner_model, worker_model, 
-         embedding_model, reindex, format_type, log_file, log_level, output_dir):
+         embedding_model, reindex, enable_vectorization, format_type, log_file, log_level, output_dir):
     """主函数"""
     
     # 加载配置文件（如果提供）
@@ -708,6 +734,7 @@ def main(config, repo, files, categories, prompt, ollama_host, planner_model, wo
         f"[bold]仓库路径:[/bold] {repo}\n"
         f"[bold]扫描文件:[/bold] {'所有文件' if not files_to_scan else ', '.join(files_to_scan[:5]) + ('...' if len(files_to_scan) > 5 else '')}\n"
         f"[bold]审查类别:[/bold] {'所有类别' if not categories_to_run else ', '.join([c.value for c in categories_to_run])}\n"
+        f"[bold]向量化索引:[/bold] {'启用' if enable_vectorization else '禁用（推荐）'}\n"
         f"[bold]输出目录:[/bold] {output_dir}\n"
         f"[bold]输出格式:[/bold] {format_type}\n"
         f"[bold]Ollama主机:[/bold] {ollama_host}\n"
@@ -726,7 +753,8 @@ def main(config, repo, files, categories, prompt, ollama_host, planner_model, wo
         worker_model=worker_model,
         embedding_model=embedding_model,
         ignore_extensions=ignore_extensions,
-        ignored_dirs=ignored_dirs
+        ignored_dirs=ignored_dirs,
+        enable_vectorization=enable_vectorization
     )
     
     try:

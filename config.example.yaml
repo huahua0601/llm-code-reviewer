@@ -2,7 +2,7 @@
 # 支持YAML和JSON格式
 
 # 基本配置
-repo: "/home/ubuntu/learn-python3"  # 仓库根目录路径
+repo: "/home/ubuntu/auto_tag_resource"  # 仓库根目录路径
 prompt: "重点检查安全性、逻辑错误、边界情况、安全漏洞、性能问题"  # 系统提示词
 
 # 模型配置
@@ -67,4 +67,4 @@ ignored_dirs:               # 要忽略的目录名（支持glob模式匹配）
 # 或者使用字符串格式: ignored_dirs: ".git,.chroma,.venv,node_modules,test_*,*/temp"
 
 # 其他选项
-reindex: true              # 是否强制重新索引代码库
+reindex: false              # 是否强制重新索引代码库

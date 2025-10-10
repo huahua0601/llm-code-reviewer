@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import logging
 from typing import List
@@ -495,48 +496,124 @@ class CodeReviewWorker:
         return self._perform_single_review(code_to_review, context_str)
     
     def _review_repo_scan(self, git_diff: str, system_prompt: str) -> WorkerResponse:
-        """仓库扫描模式 - 分批处理所有代码，不采样不重排"""
-        self.console.print(f"[dim]  ├─ 仓库扫描模式：正在提取所有代码行...")
-        formatted_code_lines = self.get_sampled_code_lines(git_diff, is_repo_scan=True)
-        self.console.print(f"[dim]  ├─ 已提取 {len(formatted_code_lines)} 行代码")
+        """仓库扫描模式 - 按文件为单位进行扫描"""
+        self.console.print(f"[dim]  ├─ 仓库扫描模式：按文件为单位进行扫描...")
         
-        # 仓库扫描模式不需要额外的上下文，因为本身就是所有待审查的文件
-        self.console.print(f"[dim]  ├─ 仓库扫描模式：跳过上下文检索（所有文件已包含）")
-        context_str = ""
-
-        print(context_str)
-        print("=================================================")
-        # 分批处理代码
-        batch_size = 2000  # 每批处理的代码行数
+        # 解析 git_diff 获取文件列表
+        files_to_scan = self._extract_files_from_diff(git_diff)
+        self.console.print(f"[dim]  ├─ 发现 {len(files_to_scan)} 个文件需要扫描")
+        
         all_comments = []
         
-        if len(formatted_code_lines) <= batch_size:
-            # 小于批次大小，直接处理
-            code_to_review = "\n".join(formatted_code_lines)
-            response = self._perform_single_review(code_to_review, context_str)
-            return response
-        else:
-            # 分批处理
-            total_batches = (len(formatted_code_lines) + batch_size - 1) // batch_size
-            self.console.print(f"[dim]  ├─ 代码量较大，分 {total_batches} 批处理")
+        for i, file_path in enumerate(files_to_scan, 1):
+            self.console.print(f"[dim]  ├─ 正在扫描文件 {i}/{len(files_to_scan)}: {file_path}")
             
-            for i in range(0, len(formatted_code_lines), batch_size):
-                batch_num = (i // batch_size) + 1
-                batch_lines = formatted_code_lines[i:i + batch_size]
-                code_to_review = "\n".join(batch_lines)
-                
-                self.console.print(f"[dim]  ├─ 正在处理第 {batch_num}/{total_batches} 批 ({len(batch_lines)} 行代码)")
-                
-                try:
-                    batch_response = self._perform_single_review(code_to_review, context_str, batch_info=f"批次 {batch_num}/{total_batches}")
-                    all_comments.extend(batch_response.comments)
-                except Exception as e:
-                    self.console.print(f"[yellow]  ├─ 第 {batch_num} 批处理失败: {str(e)}")
-                    self.logger.warning(f"Batch {batch_num} failed: {str(e)}")
+            try:
+                # 获取单个文件的内容
+                file_content = self._get_file_content(file_path)
+                if not file_content:
+                    self.console.print(f"[yellow]  ├─ 跳过空文件: {file_path}")
                     continue
+                
+                # 为单个文件创建格式化的代码内容
+                formatted_code = self._format_file_for_review(file_path, file_content)
+                
+                # 获取该文件的上下文（可选）
+                context_str = self._get_file_context(file_path)
+                
+                # 对单个文件进行审查
+                file_response = self._perform_single_review(
+                    formatted_code, 
+                    context_str, 
+                    batch_info=f"文件 {i}/{len(files_to_scan)}: {file_path}"
+                )
+                
+                # 为评论添加文件信息
+                for comment in file_response.comments:
+                    if not comment.file_name:
+                        comment.file_name = file_path
+                
+                all_comments.extend(file_response.comments)
+                self.console.print(f"[dim]  ├─ 文件 {file_path} 扫描完成，发现 {len(file_response.comments)} 条建议")
+                
+            except Exception as e:
+                self.console.print(f"[yellow]  ├─ 文件 {file_path} 扫描失败: {str(e)}")
+                self.logger.warning(f"File {file_path} scan failed: {str(e)}")
+                continue
+        
+        self.console.print(f"[dim]  ├─ 所有文件扫描完成，总计 {len(all_comments)} 条建议")
+        return WorkerResponse(category=self.category, comments=all_comments)
+    
+    def _extract_files_from_diff(self, git_diff: str) -> List[str]:
+        """从 git diff 中提取文件路径列表"""
+        files = []
+        lines = git_diff.split('\n')
+        
+        for line in lines:
+            # 匹配 diff 文件头，如 "diff --git a/path/to/file.py b/path/to/file.py"
+            if line.startswith('diff --git'):
+                # 提取文件路径
+                parts = line.split()
+                if len(parts) >= 4:
+                    # 格式: diff --git a/path/to/file.py b/path/to/file.py
+                    file_path = parts[2][2:]  # 去掉 "a/" 前缀
+                    if file_path not in files:
+                        files.append(file_path)
+            # 匹配 +++ 行，如 "+++ b/path/to/file.py"
+            elif line.startswith('+++ b/'):
+                file_path = line[6:]  # 去掉 "+++ b/" 前缀
+                if file_path not in files:
+                    files.append(file_path)
+        
+        return files
+    
+    def _get_file_content(self, file_path: str) -> str:
+        """获取指定文件的完整内容"""
+        try:
+            full_path = os.path.join(self.code_indexer.repo_path, file_path)
+            if not os.path.exists(full_path):
+                return ""
             
-            self.console.print(f"[dim]  ├─ 所有批次处理完成，总计 {len(all_comments)} 条建议")
-            return WorkerResponse(category=self.category, comments=all_comments)
+            with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
+                return f.read()
+        except Exception as e:
+            self.logger.warning(f"Failed to read file {file_path}: {str(e)}")
+            return ""
+    
+    def _format_file_for_review(self, file_path: str, file_content: str) -> str:
+        """为单个文件创建格式化的代码内容用于审查"""
+        lines = file_content.split('\n')
+        formatted_lines = []
+        
+        for i, line in enumerate(lines, 1):
+            # 添加行号和文件路径信息
+            formatted_line = f"{file_path}:{i}|{line}"
+            formatted_lines.append(formatted_line)
+        
+        return '\n'.join(formatted_lines)
+    
+    def _get_file_context(self, file_path: str) -> str:
+        """获取指定文件的上下文信息"""
+        # 在仓库扫描模式下，我们通常不需要额外的上下文
+        # 因为每个文件都是完整的，主要关注文件内部的问题
+        # 如果需要上下文，可以通过配置启用
+        
+        # 检查是否启用了上下文检索
+        if not getattr(self, 'enable_context_retrieval', False):
+            return ""
+        
+        try:
+            # 使用现有的上下文检索器获取相关上下文
+            if hasattr(self, 'context_retriever') and self.context_retriever:
+                # 创建一个简单的查询来获取相关上下文
+                query = f"Code from {file_path}"
+                context_docs = self.context_retriever.retrieve_context(query, max_docs=3)
+                if context_docs:
+                    return self.format_context(context_docs)
+        except Exception as e:
+            self.logger.warning(f"Failed to get context for file {file_path}: {str(e)}")
+        
+        return ""
     
     def _perform_single_review(self, code_to_review: str, context_str: str, batch_info: str = "") -> WorkerResponse:
         """执行单次审查"""

@@ -13,5 +13,5 @@ __pycache__
 out/
 venv/
 __pycache__
-.scan.log
+scan.log
 reports/
